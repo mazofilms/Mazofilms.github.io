@@ -272,15 +272,17 @@
 <script>
 /* ----------- UI de medidores ----------- */
 function bindMeter(name, outputId) {
-  const radios = document.querySelectorAll('input[name="'+name+'"]');
+  const nodes = document.querySelectorAll('input[name="'+name+'"]');
+  const radios = Array.from(nodes).filter(n => n.type === 'radio');
   const out = document.getElementById(outputId);
-  if (!radios.length || !out) return;
+  if (!nodes.length || !out) return;
   const update = () => {
-    const checked = Array.from(radios).find(r => r.checked);
+    const checked = radios.find(r => r.checked);
     const val = checked ? Number(checked.value || 0) : 0;
     out.textContent = val;
   };
-  radios.forEach(r => r.addEventListener('change', update));
+  nodes.forEach(el => el.addEventListener('input', update));
+  nodes.forEach(el => el.addEventListener('change', update));
   update();
 }
 bindMeter('ataque','val-ataque');
@@ -296,10 +298,9 @@ function enableIconReset(iconId, groupName, outputId){
   const form = document.getElementById('hoja');
   if (!icon) return;
   icon.addEventListener('click', ()=>{
-    const radios = document.querySelectorAll('input[name="'+groupName+'"]');
-    Array.from(radios).forEach(r => r.checked = false);
+    const radios = Array.from(document.querySelectorAll('input[name="'+groupName+'"]')).filter(r=>r.type==='radio');
+    radios.forEach(r => r.checked = false);
     if (out) out.textContent = '0';
-    // Dispara eventos para que salte el autoguardado
     form.dispatchEvent(new Event('change', {bubbles:true}));
   });
 }
@@ -326,7 +327,6 @@ if (!STORAGE_OK){
 }
 
 function encodeStateToUrl(stateObj){
-  // Base64 URL-safe
   const json = JSON.stringify(stateObj);
   const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   const url = new URL(location.href);
@@ -343,7 +343,7 @@ function decodeStateFromUrl(){
   }catch(e){ return null; }
 }
 
-/* ----------- Persistencia (localStorage + fallback URL) ----------- */
+/* ----------- Persistencia: guarda TODO (radios + texto/número) ----------- */
 (function(){
   const FORM = document.getElementById('hoja');
   const SLOT = document.getElementById('slot');
@@ -357,35 +357,34 @@ function decodeStateFromUrl(){
 
   function serialize(){
     const data = {};
-    const groups = ['ataque','defensa','cuerpo','menteP','nivel'];
-    groups.forEach(name=>{
-      const radios = Array.from(FORM.querySelectorAll('input[name="'+name+'"]'));
+    ['ataque','defensa','cuerpo','menteP','nivel'].forEach(name=>{
+      const radios = Array.from(FORM.querySelectorAll('input[name="'+name+'"]')).filter(n=>n.type==='radio');
       const checked = radios.find(r=>r.checked);
       data[name] = checked ? checked.value : '0';
     });
-    FORM.querySelectorAll('input').forEach(el=>{
-      if (el.type === 'text' || el.type === 'number'){
-        data[el.name] = el.value;
-      }
+    FORM.querySelectorAll('input[type="text"], input[type="number"]').forEach(el=>{
+      if (el.name) data[el.name] = el.value;
     });
-    return { version: 6, updatedAt: nowISO(), data };
+    return { version: 7, updatedAt: nowISO(), data };
   }
 
   function deserialize(saved){
     if (!saved || !saved.data) return;
     const d = saved.data;
     Object.keys(d).forEach(name=>{
-      const value = d[name];
-      const radios = FORM.querySelectorAll('input[name="'+name+'"]');
-      if (radios.length){
-        Array.from(radios).forEach(r=> r.checked = false);
-        if (String(value) !== '0'){
-          const radio = FORM.querySelector('input[name="'+name+'"][value="'+CSS.escape(String(value))+'"]');
-          if (radio){ radio.checked = true; }
+      const nodes = Array.from(FORM.querySelectorAll('[name="'+name+'"]'));
+      if (!nodes.length) return;
+      const isRadioGroup = nodes.some(n => n.type === 'radio');
+      if (isRadioGroup){
+        const radios = nodes.filter(n=>n.type==='radio');
+        radios.forEach(r=> r.checked = false);
+        if (String(d[name]) !== '0'){
+          const match = radios.find(r => String(r.value) === String(d[name]));
+          if (match){ match.checked = true; }
         }
       } else {
-        const input = FORM.querySelector('[name="'+name+'"]');
-        if (input){ input.value = value; }
+        const el = nodes[0];
+        el.value = d[name];
       }
     });
     bindMeter('ataque','val-ataque');
@@ -432,12 +431,13 @@ function decodeStateFromUrl(){
   function clearForm(){
     FORM.reset();
     ['ataque','defensa','cuerpo','menteP','nivel'].forEach(name=>{
-      const radios = FORM.querySelectorAll('input[name="'+name+'"]');
-      Array.from(radios).forEach(r=> r.checked = false);
+      const radios = Array.from(FORM.querySelectorAll('input[name="'+name+'"]')).filter(n=>n.type==='radio');
+      radios.forEach(r=> r.checked = false);
     });
     ['val-ataque','val-defensa','val-cuerpo','val-mente','val-nivel'].forEach(id=>{
       const el = document.getElementById(id); if (el) el.textContent = '0';
     });
+    FORM.querySelectorAll('input[type="text"], input[type="number"]').forEach(el=> el.value = el.type==='number' ? '0' : '');
   }
 
   // Autosave (debounce 1s)
