@@ -6,6 +6,7 @@
 <title>Hoja de personaje</title>
 <style>
   :root{ --gap:0.75rem; --radius:12px; --font-base:16px; }
+  *{ box-sizing:border-box; }
   body{ font-family:Arial, Helvetica, sans-serif; margin:12px; background:#fafafa; font-size:var(--font-base); }
   h1{ text-align:center; font-size:1.4rem; margin-bottom:0.75rem; }
   form{ max-width:600px; margin:0 auto; }
@@ -14,7 +15,7 @@
   .header-field{
     display:flex; align-items:center; flex:1 1 45%; gap:0.4rem;
     background:#fff; border:1px solid #ddd; border-radius:var(--radius);
-    padding:0.4rem 0.6rem; box-sizing:border-box;
+    padding:0.4rem 0.6rem;
   }
   .header-field .icon{ font-size:1.3rem; flex-shrink:0; }
   .header-field input[type="text"]{ border:none; outline:none; flex:1; font-size:1rem; }
@@ -79,19 +80,23 @@
   .input-row input[type="text"]{ border:none; outline:none; flex:1; font-size:1rem; }
   .input-row .icon{ font-size:1.3rem; }
 
-  /* --- Barra de control (guardado/carga) --- */
-  .controls{
-    max-width:600px; margin:0.5rem auto 0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;
+  /* --- Controles --- */
+  .controls, .controls-bottom{
+    max-width:600px; margin:0.5rem auto 0.75rem;
+    display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;
+    justify-content:flex-start; /* alineado a la izquierda dentro del contenedor */
+    font-size:1rem;
   }
-  .controls > *{ height:38px; }
   .controls-select{
     flex:1 1 180px; border:1px solid #ddd; border-radius:8px; padding:0.3rem 0.5rem; background:#fff;
+    font-size:1rem; height:38px;
   }
   .btn{
     border:1px solid #ccc; background:#fff; border-radius:8px; padding:0.4rem 0.7rem; cursor:pointer;
+    font-size:1rem; height:38px;
   }
   .btn:hover{ background:#f3f3f3; }
-  .muted{ font-size:0.85rem; color:#666; margin-left:auto; }
+  .muted{ font-size:0.95rem; color:#555; margin-left:auto; }
   .file-input{ display:none; }
   .banner{ background:#fff3cd; border:1px solid #ffeeba; color:#856404; padding:0.5rem 0.75rem; border-radius:8px; max-width:600px; margin:0.5rem auto; display:none; }
 
@@ -100,8 +105,7 @@
     .track .icon{ font-size:1.6rem; }
     .coins-input{ height:36px; width:80px; font-size:1rem; }
     .meter{ --segment-size:18px; }
-    .controls{ gap:0.4rem; }
-    .controls > *{ height:34px; }
+    .controls-select, .btn{ height:34px; }
   }
 </style>
 </head>
@@ -113,22 +117,17 @@
   ⚠️ El almacenamiento del navegador parece estar desactivado (modo incógnito, bloqueo de cookies o iframe). Esta hoja usará <strong>enlaces con estado</strong> y <strong>archivos</strong> para guardar/cargar.
 </div>
 
-<!-- Barra de control de partidas -->
+<!-- Fila 1: selector + Guardar + Cargar -->
 <div class="controls">
-  <select id="slot" class="controls-select" title="Ranura de partida">
-    <option value="1">Partida 1</option>
-    <option value="2">Partida 2</option>
-    <option value="3">Partida 3</option>
-    <option value="4">Partida 4</option>
-    <option value="5">Partida 5</option>
+  <select id="slot" class="controls-select" title="Ranura de personaje">
+    <option value="1">Personaje 1</option>
+    <option value="2">Personaje 2</option>
+    <option value="3">Personaje 3</option>
+    <option value="4">Personaje 4</option>
+    <option value="5">Personaje 5</option>
   </select>
   <button id="btn-guardar" class="btn" type="button">Guardar</button>
   <button id="btn-cargar" class="btn" type="button">Cargar</button>
-  <button id="btn-nueva" class="btn" type="button">Nueva partida</button>
-  <button id="btn-exportar" class="btn" type="button">Exportar</button>
-  <label class="btn" for="import-file">Importar</label>
-  <input id="import-file" class="file-input" type="file" accept="application/json" />
-  <button id="btn-enlace" class="btn" type="button" title="Genera un enlace con el estado actual">Copiar enlace</button>
   <span id="status" class="muted" aria-live="polite"></span>
 </div>
 
@@ -229,11 +228,20 @@
   </fieldset>
 
   <!-- 🎒 Objetos -->
-  <div class="input-row">
+  <div class="input-row" style="margin-bottom:1rem;">
     <span class="icon">🎒</span>
     <input id="objetos" name="objetos" type="text" placeholder="Objetos" />
   </div>
 </form>
+
+<!-- Fila 2: después de Objetos -->
+<div class="controls-bottom">
+  <button id="btn-nueva" class="btn" type="button">Nueva</button>
+  <button id="btn-exportar" class="btn" type="button">Exportar</button>
+  <label class="btn" for="import-file">Importar</label>
+  <input id="import-file" class="file-input" type="file" accept="application/json" />
+  <button id="btn-enlace" class="btn" type="button" title="Genera un enlace con el estado actual">Copiar enlace</button>
+</div>
 
 <script>
 /* ----------- UI de medidores ----------- */
@@ -342,12 +350,11 @@ function decodeStateFromUrl(){
     const payload = serialize();
     if (STORAGE_OK){
       localStorage.setItem(KEY(slot), JSON.stringify(payload));
-      setStatus(`Guardado en Partida ${slot} · ${new Date(payload.updatedAt).toLocaleString()}`);
+      setStatus(`Guardado en Personaje ${slot} · ${new Date(payload.updatedAt).toLocaleString()}`);
     } else {
-      // sin storage: sólo genera enlace
       const url = encodeStateToUrl(payload);
       navigator.clipboard?.writeText(url);
-      setStatus('No hay almacenamiento. Enlace con estado copiado al portapapeles.');
+      setStatus('Sin almacenamiento. Enlace con estado copiado al portapapeles.');
     }
   }
 
@@ -359,14 +366,14 @@ function decodeStateFromUrl(){
       return false;
     }
     const raw = localStorage.getItem(KEY(slot));
-    if (!raw){ if (!silent) setStatus(`No hay datos en Partida ${slot}`); return false; }
+    if (!raw){ if (!silent) setStatus(`No hay datos en Personaje ${slot}`); return false; }
     try{
       const saved = JSON.parse(raw);
       deserialize(saved);
-      if(!silent) setStatus(`Cargado Partida ${slot} · Última vez: ${new Date(saved.updatedAt).toLocaleString()}`);
+      if(!silent) setStatus(`Cargado Personaje ${slot} · Última vez: ${new Date(saved.updatedAt).toLocaleString()}`);
       return true;
     }catch(e){
-      if(!silent) setStatus(`Error al cargar Partida ${slot}`);
+      if(!silent) setStatus(`Error al cargar Personaje ${slot}`);
       return false;
     }
   }
@@ -395,14 +402,14 @@ function decodeStateFromUrl(){
   // Botones
   BTN_GUARDAR.addEventListener('click', ()=> save(SLOT.value));
   BTN_CARGAR.addEventListener('click', ()=> load(SLOT.value));
-  BTN_NUEVA.addEventListener('click', ()=>{ clearForm(); setStatus('Nueva partida iniciada (no guardada aún)'); });
+  BTN_NUEVA.addEventListener('click', ()=>{ clearForm(); setStatus('Nuevo personaje iniciado (no guardado aún)'); });
   BTN_EXPORTAR.addEventListener('click', ()=>{
     const slot = SLOT.value;
     const raw = STORAGE_OK ? (localStorage.getItem(KEY(slot)) || JSON.stringify(serialize(), null, 2)) : JSON.stringify(serialize(), null, 2);
     const blob = new Blob([raw], {type:'application/json'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `hoja-personaje-partida-${slot}.json`;
+    a.download = `hoja-personaje-${slot}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   });
@@ -422,7 +429,7 @@ function decodeStateFromUrl(){
         deserialize(json);
         if (STORAGE_OK){
           localStorage.setItem(KEY(SLOT.value), JSON.stringify(json));
-          setStatus(`Importado y guardado en Partida ${SLOT.value}`);
+          setStatus(`Importado y guardado en Personaje ${SLOT.value}`);
         } else {
           setStatus('Importado (sin almacenamiento). Usa "Copiar enlace" o Exportar.');
         }
@@ -434,13 +441,13 @@ function decodeStateFromUrl(){
     reader.readAsText(file, 'utf-8');
   });
 
-  // Cambiar de slot -> carga silenciosa (si se puede)
-  SLOT.addEventListener('change', ()=>{
+  // Cambiar de selector -> carga silenciosa (si se puede)
+  document.getElementById('slot').addEventListener('change', ()=>{
     const ok = load(SLOT.value, true);
-    setStatus(ok ? `Partida ${SLOT.value} cargada` : `Partida ${SLOT.value} vacía`);
+    setStatus(ok ? `Personaje ${SLOT.value} cargado` : `Personaje ${SLOT.value} vacío`);
   });
 
-  // Inicial: intenta cargar desde URL (prioridad), si no desde slot 1
+  // Inicial: intenta cargar desde URL (prioridad), si no desde 1
   const fromUrl = decodeStateFromUrl();
   if (fromUrl){ deserialize(fromUrl); setStatus('Estado precargado desde enlace.'); }
   else { load(SLOT.value, true); }
