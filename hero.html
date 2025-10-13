@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hoja de personaje</title>
+<style>
+  :root{ --gap:0.75rem; --radius:12px; --font-base:16px; }
+  *{ box-sizing:border-box; }
+  body{ font-family:Arial, Helvetica, sans-serif; margin:12px; background:#fafafa; font-size:var(--font-base); }
+  h1{ text-align:center; font-size:1.4rem; margin-bottom:0.75rem; }
+  form{ max-width:600px; margin:0 auto; }
+
+  .header-row{ display:flex; gap:var(--gap); flex-wrap:wrap; margin-bottom:0.75rem; }
+  .header-field{
+    display:flex; align-items:center; flex:1 1 45%; gap:0.4rem;
+    background:#fff; border:1px solid #ddd; border-radius:var(--radius);
+    padding:0.4rem 0.6rem;
+  }
+  .header-field .icon{ font-size:1.3rem; flex-shrink:0; }
+  .header-field input[type="text"]{ border:none; outline:none; flex:1; font-size:1rem; }
+
+  fieldset{
+    border:1px solid #ddd; border-radius:var(--radius);
+    padding:0.75rem; margin:1rem 0; background:#fff;
+  }
+
+  .track{
+    display:flex; align-items:center; gap:0.6rem;
+    justify-content:center; margin:0.75rem 0; flex-wrap:wrap;
+  }
+  .track .icon{ font-size:1rem; line-height:1; text-align:center; cursor:pointer; user-select:none; }
+  .track .icon:hover{ text-decoration:underline; }
+
+  .value-badge{
+    min-width: 2.2ch;
+    padding: 0.15rem 0.45rem;
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    background: #fff;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    line-height: 1.1;
+  }
+
+  .meter{
+    --fill:#e53935;
+    --fill-weak:#ffd6d6;
+    --segment-size:22px;
+    --segment-radius:6px;
+    display:inline-flex; flex-direction:row-reverse; gap:4px; user-select:none;
+  }
+  .meter input[type="radio"]{ position:absolute; opacity:0; pointer-events:none; }
+  .meter label{
+    width:var(--segment-size); height:var(--segment-size);
+    border:1px solid #ccc; border-radius:var(--segment-radius);
+    background:#f6f6f6; cursor:pointer; transition:background .15s, border-color .15s;
+  }
+  .meter input[type="radio"]:checked ~ label{ background:var(--fill); border-color:var(--fill); }
+  .meter label:hover, .meter label:hover ~ label{ background:var(--fill-weak); border-color:var(--fill); }
+
+  .meter.attack { --fill:#f39c12; --fill-weak:#ffe5b3; }
+  .meter.defense{ --fill:#3498db; --fill-weak:#d5ecff; }
+  .meter.mind   { --fill:#6a5acd; --fill-weak:#e2dcff; }
+  .meter.level  { --fill:#2ecc71; --fill-weak:#d7f5e4; }
+
+  .coins-card{
+    border:1px solid #ddd; border-radius:var(--radius); padding:0.75rem; background:#fff;
+    display:flex; align-items:center; justify-content:center; gap:0.75rem;
+  }
+  .coins-emoji{ font-size:1.8rem; }
+  .coins-input{
+    width:100px; text-align:center; font-size:1.2rem;
+    border:1px solid #ccc; border-radius:6px; height:40px;
+  }
+
+  .input-row{
+    background:#fff; border:1px solid #ddd; border-radius:var(--radius);
+    padding:0.4rem 0.6rem; display:flex; align-items:center; gap:0.5rem;
+  }
+  .input-row input[type="text"]{ border:none; outline:none; flex:1; font-size:1rem; }
+  .input-row .icon{ font-size:1.3rem; }
+
+  /* --- Controles --- */
+  .controls, .controls-bottom{
+    max-width:600px; margin:0.5rem auto 0.75rem;
+    display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;
+    justify-content:flex-start; font-size:1rem;
+  }
+  .controls-select{
+    flex:1 1 180px; border:1px solid #ddd; border-radius:8px; padding:0.3rem 0.5rem; background:#fff;
+    font-size:1rem; height:38px;
+  }
+  .btn{
+    border:1px solid #ccc; background:#fff; border-radius:8px; padding:0.4rem 0.7rem; cursor:pointer;
+    font-size:1rem; height:38px;
+  }
+  .btn:hover{ background:#f3f3f3; }
+  .muted{ font-size:0.95rem; color:#555; margin-left:auto; }
+  .file-input{ display:none; }
+  .banner{ background:#fff3cd; border:1px solid #ffeeba; color:#856404; padding:0.5rem 0.75rem; border-radius:8px; max-width:600px; margin:0.5rem auto; display:none; }
+
+  @media (max-width:400px){
+    body{ font-size:14px; }
+    .track .icon{ font-size:1rem; }
+    .coins-input{ height:36px; width:80px; font-size:1rem; }
+    .meter{ --segment-size:18px; }
+    .controls-select, .btn{ height:34px; }
+  }
+</style>
+</head>
+<body>
+<h1>HOJA DE PERSONAJE</h1>
+
+<!-- Aviso de modo sin almacenamiento -->
+<div id="no-storage" class="banner">
+  ⚠️ El almacenamiento del navegador parece estar desactivado (modo incógnito, bloqueo de cookies o iframe). Esta hoja usará <strong>enlaces con estado</strong> y <strong>archivos</strong> para guardar/cargar.
+</div>
+
+<!-- Fila 1: selector + Guardar + Cargar -->
+<div class="controls">
+  <select id="slot" class="controls-select" title="Ranura de personaje">
+    <option value="1">Personaje 1</option>
+    <option value="2">Personaje 2</option>
+    <option value="3">Personaje 3</option>
+    <option value="4">Personaje 4</option>
+    <option value="5">Personaje 5</option>
+  </select>
+  <button id="btn-guardar" class="btn" type="button">Guardar</button>
+  <button id="btn-cargar" class="btn" type="button">Cargar</button>
+  <span id="status" class="muted" aria-live="polite"></span>
+</div>
+
+<form id="hoja">
+  <!-- Nombre y Clase -->
+  <div class="header-row">
+    <div class="header-field">
+      <input id="nombre" name="nombre" type="text" placeholder="Nombre" />
+    </div>
+    <div class="header-field">
+      <span class="icon">⚜️</span>
+      <input id="clase" name="clase" type="text" placeholder="Clase" />
+    </div>
+  </div>
+
+  <!-- ⚔️🛡️ SECCIÓN DE COMBATE -->
+  <fieldset>
+    <div class="track">
+      <span id="icon-ataque" class="icon" title="Pulsar para reiniciar">⚔️</span>
+      <span class="value-badge" id="val-ataque">0</span>
+      <div class="meter attack">
+        <input type="radio" id="ataque_0" name="ataque" value="0">
+        <input type="radio" id="ataque_10" name="ataque" value="10"><label for="ataque_10"></label>
+        <input type="radio" id="ataque_9" name="ataque" value="9"><label for="ataque_9"></label>
+        <input type="radio" id="ataque_8" name="ataque" value="8"><label for="ataque_8"></label>
+        <input type="radio" id="ataque_7" name="ataque" value="7"><label for="ataque_7"></label>
+        <input type="radio" id="ataque_6" name="ataque" value="6"><label for="ataque_6"></label>
+        <input type="radio" id="ataque_5" name="ataque" value="5"><label for="ataque_5"></label>
+        <input type="radio" id="ataque_4" name="ataque" value="4"><label for="ataque_4"></label>
+        <input type="radio" id="ataque_3" name="ataque" value="3"><label for="ataque_3"></label>
+        <input type="radio" id="ataque_2" name="ataque" value="2"><label for="ataque_2"></label>
+        <input type="radio" id="ataque_1" name="ataque" value="1"><label for="ataque_1"></label>
+      </div>
+    </div>
+
+    <div class="track">
+      <span id="icon-defensa" class="icon" title="Pulsar para reiniciar">🛡️</span>
+      <span class="value-badge" id="val-defensa">0</span>
+      <div class="meter defense">
+        <input type="radio" id="defensa_0" name="defensa" value="0">
+        <input type="radio" id="defensa_10" name="defensa" value="10"><label for="defensa_10"></label>
+        <input type="radio" id="defensa_9" name="defensa" value="9"><label for="defensa_9"></label>
+        <input type="radio" id="defensa_8" name="defensa" value="8"><label for="defensa_8"></label>
+        <input type="radio" id="defensa_7" name="defensa" value="7"><label for="defensa_7"></label>
+        <input type="radio" id="defensa_6" name="defensa" value="6"><label for="defensa_6"></label>
+        <input type="radio" id="defensa_5" name="defensa" value="5"><label for="defensa_5"></label>
+        <input type="radio" id="defensa_4" name="defensa" value="4"><label for="defensa_4"></label>
+        <input type="radio" id="defensa_3" name="defensa" value="3"><label for="defensa_3"></label>
+        <input type="radio" id="defensa_2" name="defensa" value="2"><label for="defensa_2"></label>
+        <input type="radio" id="defensa_1" name="defensa" value="1"><label for="defensa_1"></label>
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- ❤️🧠 SECCIÓN DE ESTADO -->
+  <fieldset>
+    <div class="track">
+      <span id="icon-cuerpo" class="icon" title="Pulsar para reiniciar">&hearts;️</span>
+      <span class="value-badge" id="val-cuerpo">0</span>
+      <div class="meter">
+        <input type="radio" id="cuerpo_0" name="cuerpo" value="0">
+        <input type="radio" id="cuerpo_10" name="cuerpo" value="10"><label for="cuerpo_10"></label>
+        <input type="radio" id="cuerpo_9" name="cuerpo" value="9"><label for="cuerpo_9"></label>
+        <input type="radio" id="cuerpo_8" name="cuerpo" value="8"><label for="cuerpo_8"></label>
+        <input type="radio" id="cuerpo_7" name="cuerpo" value="7"><label for="cuerpo_7"></label>
+        <input type="radio" id="cuerpo_6" name="cuerpo" value="6"><label for="cuerpo_6"></label>
+        <input type="radio" id="cuerpo_5" name="cuerpo" value="5"><label for="cuerpo_5"></label>
+        <input type="radio" id="cuerpo_4" name="cuerpo" value="4"><label for="cuerpo_4"></label>
+        <input type="radio" id="cuerpo_3" name="cuerpo" value="3"><label for="cuerpo_3"></label>
+        <input type="radio" id="cuerpo_2" name="cuerpo" value="2"><label for="cuerpo_2"></label>
+        <input type="radio" id="cuerpo_1" name="cuerpo" value="1"><label for="cuerpo_1"></label>
+      </div>
+    </div>
+
+    <div class="track">
+      <span id="icon-mente" class="icon" title="Pulsar para reiniciar">🧠</span>
+      <span class="value-badge" id="val-mente">0</span>
+      <div class="meter mind">
+        <input type="radio" id="mente_0" name="menteP" value="0">
+        <input type="radio" id="mente_10" name="menteP" value="10"><label for="mente_10"></label>
+        <input type="radio" id="mente_9" name="menteP" value="9"><label for="mente_9"></label>
+        <input type="radio" id="mente_8" name="menteP" value="8"><label for="mente_8"></label>
+        <input type="radio" id="mente_7" name="menteP" value="7"><label for="mente_7"></label>
+        <input type="radio" id="mente_6" name="menteP" value="6"><label for="mente_6"></label>
+        <input type="radio" id="mente_5" name="menteP" value="5"><label for="mente_5"></label>
+        <input type="radio" id="mente_4" name="menteP" value="4"><label for="mente_4"></label>
+        <input type="radio" id="mente_3" name="menteP" value="3"><label for="mente_3"></label>
+        <input type="radio" id="mente_2" name="menteP" value="2"><label for="mente_2"></label>
+        <input type="radio" id="mente_1" name="menteP" value="1"><label for="mente_1"></label>
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- 💰 Monedas -->
+  <fieldset class="coins-card">
+    <span class="coins-emoji">💰</span>
+    <input id="oro" name="oro" class="coins-input" type="number" min="0" max="999" step="1" value="0" />
+  </fieldset>
+
+  <!-- 🎒 Objetos -->
+  <div class="input-row" style="margin-bottom:1rem;">
+    <span class="icon">🎒</span>
+    <input id="objetos" name="objetos" type="text" placeholder="Objetos" />
+  </div>
+
+  <!-- Nivel (14 casillas) -->
+  <fieldset>
+    <div class="track">
+      <span id="icon-nivel" class="icon" title="Pulsar para reiniciar">Nivel</span>
+      <span class="value-badge" id="val-nivel">0</span>
+      <div class="meter level">
+        <input type="radio" id="nivel_0" name="nivel" value="0">
+        <input type="radio" id="nivel_14" name="nivel" value="14"><label for="nivel_14"></label>
+        <input type="radio" id="nivel_13" name="nivel" value="13"><label for="nivel_13"></label>
+        <input type="radio" id="nivel_12" name="nivel" value="12"><label for="nivel_12"></label>
+        <input type="radio" id="nivel_11" name="nivel" value="11"><label for="nivel_11"></label>
+        <input type="radio" id="nivel_10" name="nivel" value="10"><label for="nivel_10"></label>
+        <input type="radio" id="nivel_9" name="nivel" value="9"><label for="nivel_9"></label>
+        <input type="radio" id="nivel_8" name="nivel" value="8"><label for="nivel_8"></label>
+        <input type="radio" id="nivel_7" name="nivel" value="7"><label for="nivel_7"></label>
+        <input type="radio" id="nivel_6" name="nivel" value="6"><label for="nivel_6"></label>
+        <input type="radio" id="nivel_5" name="nivel" value="5"><label for="nivel_5"></label>
+        <input type="radio" id="nivel_4" name="nivel" value="4"><label for="nivel_4"></label>
+        <input type="radio" id="nivel_3" name="nivel" value="3"><label for="nivel_3"></label>
+        <input type="radio" id="nivel_2" name="nivel" value="2"><label for="nivel_2"></label>
+        <input type="radio" id="nivel_1" name="nivel" value="1"><label for="nivel_1"></label>
+      </div>
+    </div>
+  </fieldset>
+</form>
+
+<!-- Fila 2: después de Nivel -->
+<div class="controls-bottom">
+  <button id="btn-nueva" class="btn" type="button">Nueva</button>
+  <button id="btn-exportar" class="btn" type="button">Exportar</button>
+  <label class="btn" for="import-file">Importar</label>
+  <input id="import-file" class="file-input" type="file" accept="application/json" />
+  <button id="btn-enlace" class="btn" type="button" title="Genera un enlace con el estado actual">Copiar enlace</button>
+</div>
+
+<script>
+/* ----------- UI de medidores ----------- */
+function bindMeter(name, outputId) {
+  const radios = document.querySelectorAll('input[name="'+name+'"]');
+  const out = document.getElementById(outputId);
+  if (!radios.length || !out) return;
+  const update = () => {
+    const checked = Array.from(radios).find(r => r.checked);
+    const val = checked ? Number(checked.value || 0) : 0;
+    out.textContent = val;
+  };
+  radios.forEach(r => r.addEventListener('change', update));
+  update();
+}
+bindMeter('ataque','val-ataque');
+bindMeter('defensa','val-defensa');
+bindMeter('cuerpo','val-cuerpo');
+bindMeter('menteP','val-mente');
+bindMeter('nivel','val-nivel');
+
+/* ---- Reset al pulsar icono: deja 0 y ninguna casilla marcada ---- */
+function enableIconReset(iconId, groupName, outputId){
+  const icon = document.getElementById(iconId);
+  const out = document.getElementById(outputId);
+  const form = document.getElementById('hoja');
+  if (!icon) return;
+  icon.addEventListener('click', ()=>{
+    const radios = document.querySelectorAll('input[name="'+groupName+'"]');
+    Array.from(radios).forEach(r => r.checked = false);
+    if (out) out.textContent = '0';
+    // Dispara eventos para que salte el autoguardado
+    form.dispatchEvent(new Event('change', {bubbles:true}));
+  });
+}
+enableIconReset('icon-ataque','ataque','val-ataque');
+enableIconReset('icon-defensa','defensa','val-defensa');
+enableIconReset('icon-cuerpo','cuerpo','val-cuerpo');
+enableIconReset('icon-mente','menteP','val-mente');
+enableIconReset('icon-nivel','nivel','val-nivel');
+
+/* ----------- Utilidades ----------- */
+const KEY = (slot) => `hojaPJ:slot:${slot}`;
+const nowISO = () => new Date().toISOString();
+function canUseStorage(){
+  try{
+    const k='__test__';
+    localStorage.setItem(k,'1');
+    localStorage.removeItem(k);
+    return true;
+  }catch(e){ return false; }
+}
+const STORAGE_OK = canUseStorage();
+if (!STORAGE_OK){
+  document.getElementById('no-storage').style.display = 'block';
+}
+
+function encodeStateToUrl(stateObj){
+  // Base64 URL-safe
+  const json = JSON.stringify(stateObj);
+  const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const url = new URL(location.href);
+  url.searchParams.set('s', b64);
+  return url.toString();
+}
+function decodeStateFromUrl(){
+  const p = new URL(location.href).searchParams.get('s');
+  if(!p) return null;
+  try{
+    const b64 = p.replace(/-/g,'+').replace(/_/g,'/');
+    const json = decodeURIComponent(escape(atob(b64)));
+    return JSON.parse(json);
+  }catch(e){ return null; }
+}
+
+/* ----------- Persistencia (localStorage + fallback URL) ----------- */
+(function(){
+  const FORM = document.getElementById('hoja');
+  const SLOT = document.getElementById('slot');
+  const STATUS = document.getElementById('status');
+  const BTN_GUARDAR = document.getElementById('btn-guardar');
+  const BTN_CARGAR = document.getElementById('btn-cargar');
+  const BTN_NUEVA = document.getElementById('btn-nueva');
+  const BTN_EXPORTAR = document.getElementById('btn-exportar');
+  const BTN_ENLACE = document.getElementById('btn-enlace');
+  const FILE_IMPORT = document.getElementById('import-file');
+
+  function serialize(){
+    const data = {};
+    const groups = ['ataque','defensa','cuerpo','menteP','nivel'];
+    groups.forEach(name=>{
+      const radios = Array.from(FORM.querySelectorAll('input[name="'+name+'"]'));
+      const checked = radios.find(r=>r.checked);
+      data[name] = checked ? checked.value : '0';
+    });
+    FORM.querySelectorAll('input').forEach(el=>{
+      if (el.type === 'text' || el.type === 'number'){
+        data[el.name] = el.value;
+      }
+    });
+    return { version: 6, updatedAt: nowISO(), data };
+  }
+
+  function deserialize(saved){
+    if (!saved || !saved.data) return;
+    const d = saved.data;
+    Object.keys(d).forEach(name=>{
+      const value = d[name];
+      const radios = FORM.querySelectorAll('input[name="'+name+'"]');
+      if (radios.length){
+        Array.from(radios).forEach(r=> r.checked = false);
+        if (String(value) !== '0'){
+          const radio = FORM.querySelector('input[name="'+name+'"][value="'+CSS.escape(String(value))+'"]');
+          if (radio){ radio.checked = true; }
+        }
+      } else {
+        const input = FORM.querySelector('[name="'+name+'"]');
+        if (input){ input.value = value; }
+      }
+    });
+    bindMeter('ataque','val-ataque');
+    bindMeter('defensa','val-defensa');
+    bindMeter('cuerpo','val-cuerpo');
+    bindMeter('menteP','val-mente');
+    bindMeter('nivel','val-nivel');
+  }
+
+  function setStatus(msg){ STATUS.textContent = msg; }
+
+  function save(slot){
+    const payload = serialize();
+    if (STORAGE_OK){
+      localStorage.setItem(KEY(slot), JSON.stringify(payload));
+      setStatus(`Guardado en Personaje ${slot} · ${new Date(payload.updatedAt).toLocaleString()}`);
+    } else {
+      const url = encodeStateToUrl(payload);
+      navigator.clipboard?.writeText(url);
+      setStatus('Sin almacenamiento. Enlace con estado copiado al portapapeles.');
+    }
+  }
+
+  function load(slot, silent=false){
+    if (!STORAGE_OK){
+      const fromUrl = decodeStateFromUrl();
+      if (fromUrl){ deserialize(fromUrl); if(!silent) setStatus('Cargado desde enlace.'); return true; }
+      if (!silent) setStatus('Sin almacenamiento. Proporciona un enlace o importa JSON.');
+      return false;
+    }
+    const raw = localStorage.getItem(KEY(slot));
+    if (!raw){ if (!silent) setStatus(`No hay datos en Personaje ${slot}`); return false; }
+    try{
+      const saved = JSON.parse(raw);
+      deserialize(saved);
+      if(!silent) setStatus(`Cargado Personaje ${slot} · Última vez: ${new Date(saved.updatedAt).toLocaleString()}`);
+      return true;
+    }catch(e){
+      if(!silent) setStatus(`Error al cargar Personaje ${slot}`);
+      return false;
+    }
+  }
+
+  function clearForm(){
+    FORM.reset();
+    ['ataque','defensa','cuerpo','menteP','nivel'].forEach(name=>{
+      const radios = FORM.querySelectorAll('input[name="'+name+'"]');
+      Array.from(radios).forEach(r=> r.checked = false);
+    });
+    ['val-ataque','val-defensa','val-cuerpo','val-mente','val-nivel'].forEach(id=>{
+      const el = document.getElementById(id); if (el) el.textContent = '0';
+    });
+  }
+
+  // Autosave (debounce 1s)
+  let t;
+  function scheduleAutosave(){
+    clearTimeout(t);
+    t = setTimeout(()=> save(SLOT.value), 1000);
+  }
+  FORM.addEventListener('input', scheduleAutosave);
+  FORM.addEventListener('change', scheduleAutosave);
+
+  // Botones
+  BTN_GUARDAR.addEventListener('click', ()=> save(SLOT.value));
+  BTN_CARGAR.addEventListener('click', ()=> load(SLOT.value));
+  BTN_NUEVA.addEventListener('click', ()=>{ clearForm(); setStatus('Nuevo personaje iniciado (no guardado aún)'); });
+  BTN_EXPORTAR.addEventListener('click', ()=>{
+    const slot = SLOT.value;
+    const raw = STORAGE_OK ? (localStorage.getItem(KEY(slot)) || JSON.stringify(serialize(), null, 2)) : JSON.stringify(serialize(), null, 2);
+    const blob = new Blob([raw], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `hoja-personaje-${slot}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  BTN_ENLACE.addEventListener('click', ()=>{
+    const url = encodeStateToUrl(serialize());
+    navigator.clipboard?.writeText(url);
+    setStatus('Enlace con estado copiado.');
+  });
+
+  FILE_IMPORT.addEventListener('change', (ev)=>{
+    const file = ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const json = JSON.parse(reader.result);
+        deserialize(json);
+        if (STORAGE_OK){
+          localStorage.setItem(KEY(SLOT.value), JSON.stringify(json));
+          setStatus(`Importado y guardado en Personaje ${SLOT.value}`);
+        } else {
+          setStatus('Importado (sin almacenamiento). Usa "Copiar enlace" o Exportar.');
+        }
+      }catch(e){
+        setStatus('Archivo inválido');
+      }
+      FILE_IMPORT.value = '';
+    };
+    reader.readAsText(file, 'utf-8');
+  });
+
+  // Cambio de selector -> carga silenciosa (si se puede)
+  document.getElementById('slot').addEventListener('change', ()=>{
+    const ok = load(SLOT.value, true);
+    setStatus(ok ? `Personaje ${SLOT.value} cargado` : `Personaje ${SLOT.value} vacío`);
+  });
+
+  // Inicial: intenta cargar desde URL (prioridad), si no desde 1
+  const fromUrl = decodeStateFromUrl();
+  if (fromUrl){ deserialize(fromUrl); setStatus('Estado precargado desde enlace.'); }
+  else { load(SLOT.value, true); }
+})();
+</script>
+</body>
+</html>
