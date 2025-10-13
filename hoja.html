@@ -93,6 +93,7 @@
   .btn:hover{ background:#f3f3f3; }
   .muted{ font-size:0.85rem; color:#666; margin-left:auto; }
   .file-input{ display:none; }
+  .banner{ background:#fff3cd; border:1px solid #ffeeba; color:#856404; padding:0.5rem 0.75rem; border-radius:8px; max-width:600px; margin:0.5rem auto; display:none; }
 
   @media (max-width:400px){
     body{ font-size:14px; }
@@ -106,6 +107,11 @@
 </head>
 <body>
 <h1>HOJA DE PERSONAJE</h1>
+
+<!-- Aviso de modo sin almacenamiento -->
+<div id="no-storage" class="banner">
+  ⚠️ El almacenamiento del navegador parece estar desactivado (modo incógnito, bloqueo de cookies o iframe). Esta hoja usará <strong>enlaces con estado</strong> y <strong>archivos</strong> para guardar/cargar.
+</div>
 
 <!-- Barra de control de partidas -->
 <div class="controls">
@@ -122,6 +128,7 @@
   <button id="btn-exportar" class="btn" type="button">Exportar</button>
   <label class="btn" for="import-file">Importar</label>
   <input id="import-file" class="file-input" type="file" accept="application/json" />
+  <button id="btn-enlace" class="btn" type="button" title="Genera un enlace con el estado actual">Copiar enlace</button>
   <span id="status" class="muted" aria-live="polite"></span>
 </div>
 
@@ -229,7 +236,7 @@
 </form>
 
 <script>
-/* ----------- UI de medidores (tu lógica original) ----------- */
+/* ----------- UI de medidores ----------- */
 function bindMeter(name, outputId) {
   const radios = document.querySelectorAll('input[name="'+name+'"]');
   const out = document.getElementById(outputId);
@@ -247,7 +254,41 @@ bindMeter('defensa','val-defensa');
 bindMeter('cuerpo','val-cuerpo');
 bindMeter('menteP','val-mente');
 
-/* ----------- Persistencia local (guardado/carga) ----------- */
+/* ----------- Utilidades ----------- */
+const KEY = (slot) => `hojaPJ:slot:${slot}`;
+const nowISO = () => new Date().toISOString();
+function canUseStorage(){
+  try{
+    const k='__test__';
+    localStorage.setItem(k,'1');
+    localStorage.removeItem(k);
+    return true;
+  }catch(e){ return false; }
+}
+const STORAGE_OK = canUseStorage();
+if (!STORAGE_OK){
+  document.getElementById('no-storage').style.display = 'block';
+}
+
+function encodeStateToUrl(stateObj){
+  // Base64 URL-safe
+  const json = JSON.stringify(stateObj);
+  const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const url = new URL(location.href);
+  url.searchParams.set('s', b64);
+  return url.toString();
+}
+function decodeStateFromUrl(){
+  const p = new URL(location.href).searchParams.get('s');
+  if(!p) return null;
+  try{
+    const b64 = p.replace(/-/g,'+').replace(/_/g,'/');
+    const json = decodeURIComponent(escape(atob(b64)));
+    return JSON.parse(json);
+  }catch(e){ return null; }
+}
+
+/* ----------- Persistencia (localStorage + fallback URL) ----------- */
 (function(){
   const FORM = document.getElementById('hoja');
   const SLOT = document.getElementById('slot');
@@ -256,10 +297,8 @@ bindMeter('menteP','val-mente');
   const BTN_CARGAR = document.getElementById('btn-cargar');
   const BTN_NUEVA = document.getElementById('btn-nueva');
   const BTN_EXPORTAR = document.getElementById('btn-exportar');
+  const BTN_ENLACE = document.getElementById('btn-enlace');
   const FILE_IMPORT = document.getElementById('import-file');
-
-  const KEY = (slot) => `hojaPJ:slot:${slot}`;
-  const nowISO = () => new Date().toISOString();
 
   function serialize(){
     const data = {};
@@ -271,11 +310,7 @@ bindMeter('menteP','val-mente');
         data[el.name] = el.value;
       }
     });
-    return {
-      version: 1,
-      updatedAt: nowISO(),
-      data
-    };
+    return { version: 2, updatedAt: nowISO(), data };
   }
 
   function deserialize(saved){
@@ -283,10 +318,10 @@ bindMeter('menteP','val-mente');
     const d = saved.data;
     Object.keys(d).forEach(name=>{
       const value = d[name];
-      const input = FORM.querySelector(`[name="\${CSS.escape(name)}"]`);
+      const input = FORM.querySelector(`[name="${CSS.escape(name)}"]`);
       if (!input) return;
       if (input.type === 'radio'){
-        const radio = FORM.querySelector(`input[name="\${CSS.escape(name)}"][value="\${CSS.escape(String(value))}"]`);
+        const radio = FORM.querySelector(`input[name="${CSS.escape(name)}"][value="${CSS.escape(String(value))}"]`);
         if (radio){ radio.checked = true; radio.dispatchEvent(new Event('change')); }
       } else {
         input.value = value;
@@ -301,48 +336,54 @@ bindMeter('menteP','val-mente');
     bindMeter('menteP','val-mente');
   }
 
+  function setStatus(msg){ STATUS.textContent = msg; }
+
   function save(slot){
     const payload = serialize();
-    localStorage.setItem(KEY(slot), JSON.stringify(payload));
-    setStatus(`Guardado en Partida \${slot} · \${new Date(payload.updatedAt).toLocaleString()}`);
+    if (STORAGE_OK){
+      localStorage.setItem(KEY(slot), JSON.stringify(payload));
+      setStatus(`Guardado en Partida ${slot} · ${new Date(payload.updatedAt).toLocaleString()}`);
+    } else {
+      // sin storage: sólo genera enlace
+      const url = encodeStateToUrl(payload);
+      navigator.clipboard?.writeText(url);
+      setStatus('No hay almacenamiento. Enlace con estado copiado al portapapeles.');
+    }
   }
 
   function load(slot, silent=false){
-    const raw = localStorage.getItem(KEY(slot));
-    if (!raw){
-      if (!silent) setStatus(`No hay datos en Partida \${slot}`);
+    if (!STORAGE_OK){
+      const fromUrl = decodeStateFromUrl();
+      if (fromUrl){ deserialize(fromUrl); if(!silent) setStatus('Cargado desde enlace.'); return true; }
+      if (!silent) setStatus('Sin almacenamiento. Proporciona un enlace o importa JSON.');
       return false;
     }
+    const raw = localStorage.getItem(KEY(slot));
+    if (!raw){ if (!silent) setStatus(`No hay datos en Partida ${slot}`); return false; }
     try{
       const saved = JSON.parse(raw);
       deserialize(saved);
-      if (!silent) setStatus(`Cargado Partida \${slot} · Última vez: \${new Date(saved.updatedAt).toLocaleString()}`);
+      if(!silent) setStatus(`Cargado Partida ${slot} · Última vez: ${new Date(saved.updatedAt).toLocaleString()}`);
       return true;
     }catch(e){
-      if (!silent) setStatus(`Error al cargar Partida \${slot}`);
+      if(!silent) setStatus(`Error al cargar Partida ${slot}`);
       return false;
     }
   }
 
   function clearForm(){
     FORM.reset();
-    // Asegura radios en 0
     ['ataque','defensa','cuerpo','menteP'].forEach(name=>{
-      const zero = FORM.querySelector(`input[name="\${name}"][value="0"]`);
+      const zero = FORM.querySelector(`input[name="${name}"][value="0"]`);
       if (zero){ zero.checked = true; zero.dispatchEvent(new Event('change')); }
     });
-    // Actualiza badges
     bindMeter('ataque','val-ataque');
     bindMeter('defensa','val-defensa');
     bindMeter('cuerpo','val-cuerpo');
     bindMeter('menteP','val-mente');
   }
 
-  function setStatus(msg){
-    STATUS.textContent = msg;
-  }
-
-  // Autosave: guarda 1s después de cada cambio (debounce)
+  // Autosave (debounce 1s)
   let t;
   function scheduleAutosave(){
     clearTimeout(t);
@@ -354,21 +395,21 @@ bindMeter('menteP','val-mente');
   // Botones
   BTN_GUARDAR.addEventListener('click', ()=> save(SLOT.value));
   BTN_CARGAR.addEventListener('click', ()=> load(SLOT.value));
-  BTN_NUEVA.addEventListener('click', ()=>{
-    clearForm();
-    setStatus('Nueva partida iniciada (no guardada aún)');
-  });
-
-  // Exportar/Importar JSON
+  BTN_NUEVA.addEventListener('click', ()=>{ clearForm(); setStatus('Nueva partida iniciada (no guardada aún)'); });
   BTN_EXPORTAR.addEventListener('click', ()=>{
     const slot = SLOT.value;
-    const raw = localStorage.getItem(KEY(slot)) || JSON.stringify(serialize(), null, 2);
+    const raw = STORAGE_OK ? (localStorage.getItem(KEY(slot)) || JSON.stringify(serialize(), null, 2)) : JSON.stringify(serialize(), null, 2);
     const blob = new Blob([raw], {type:'application/json'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `hoja-personaje-partida-\${slot}.json`;
+    a.download = `hoja-personaje-partida-${slot}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
+  });
+  BTN_ENLACE.addEventListener('click', ()=>{
+    const url = encodeStateToUrl(serialize());
+    navigator.clipboard?.writeText(url);
+    setStatus('Enlace con estado copiado.');
   });
 
   FILE_IMPORT.addEventListener('change', (ev)=>{
@@ -379,8 +420,12 @@ bindMeter('menteP','val-mente');
       try{
         const json = JSON.parse(reader.result);
         deserialize(json);
-        localStorage.setItem(KEY(SLOT.value), JSON.stringify(json));
-        setStatus(`Importado y guardado en Partida \${SLOT.value}`);
+        if (STORAGE_OK){
+          localStorage.setItem(KEY(SLOT.value), JSON.stringify(json));
+          setStatus(`Importado y guardado en Partida ${SLOT.value}`);
+        } else {
+          setStatus('Importado (sin almacenamiento). Usa "Copiar enlace" o Exportar.');
+        }
       }catch(e){
         setStatus('Archivo inválido');
       }
@@ -389,14 +434,16 @@ bindMeter('menteP','val-mente');
     reader.readAsText(file, 'utf-8');
   });
 
-  // Al cambiar de slot, intenta cargarlo en silencio
+  // Cambiar de slot -> carga silenciosa (si se puede)
   SLOT.addEventListener('change', ()=>{
     const ok = load(SLOT.value, true);
-    setStatus(ok ? `Partida \${SLOT.value} cargada` : `Partida \${SLOT.value} vacía`);
+    setStatus(ok ? `Partida ${SLOT.value} cargada` : `Partida ${SLOT.value} vacía`);
   });
 
-  // Inicial: intenta cargar el slot 1 si existe
-  load(SLOT.value, true);
+  // Inicial: intenta cargar desde URL (prioridad), si no desde slot 1
+  const fromUrl = decodeStateFromUrl();
+  if (fromUrl){ deserialize(fromUrl); setStatus('Estado precargado desde enlace.'); }
+  else { load(SLOT.value, true); }
 })();
 </script>
 </body>
