@@ -3,102 +3,123 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Hoja de personaje</title>
+<title>Hoja de personaje — v16</title>
 <style>
-  :root{ --gap:0.75rem; --radius:12px; --font-base:16px; }
+  :root{
+    --gap:0.6rem;
+    --radius:14px;
+    --font-base:18px;
+    --btn-h:46px;
+    --seg-gap:6px;
+  }
   *{ box-sizing:border-box; }
   body{ font-family:Arial, Helvetica, sans-serif; margin:12px; background:#fafafa; font-size:var(--font-base); }
-  h1{ text-align:center; font-size:1.4rem; margin-bottom:0.75rem; }
+  h1{ text-align:center; font-size:1.5rem; margin-bottom:0.8rem; }
   form{ max-width:640px; margin:0 auto; }
 
-  .header-row{ display:flex; gap:var(--gap); flex-wrap:wrap; margin-bottom:0.75rem; }
+  .row-oneline{ display:flex; align-items:center; gap:0.5rem; flex-wrap:nowrap; overflow:hidden; }
+
+  .header-row{ display:flex; gap:var(--gap); flex-wrap:wrap; margin-bottom:0.8rem; }
   .header-field{
-    display:flex; align-items:center; flex:1 1 48%; gap:0.4rem;
+    display:flex; align-items:center; flex:1 1 100%; gap:0.55rem;
     background:#fff; border:1px solid #ddd; border-radius:var(--radius);
-    padding:0.4rem 0.6rem;
+    padding:0.55rem 0.75rem;
   }
-  .header-field .icon{ font-size:1.1rem; flex-shrink:0; }
-  .header-field input[type="text"]{ border:none; outline:none; flex:1; font-size:1rem; }
+  .header-field .icon{ font-size:1.25rem; flex-shrink:0; }
+  .header-field input[type="text"]{ border:none; outline:none; flex:1; font-size:1.05rem; }
 
-  fieldset{
-    border:1px solid #ddd; border-radius:var(--radius);
-    padding:0.75rem; margin:1rem 0; background:#fff;
-  }
+  fieldset{ border:1px solid #ddd; border-radius:var(--radius); padding:0.75rem; margin:0.85rem 0; background:#fff; }
 
-  .track{ display:flex; align-items:center; gap:0.6rem; justify-content:center; margin:0.75rem 0; flex-wrap:wrap; }
-  .track .icon{ font-size:1rem; line-height:1; text-align:center; cursor:pointer; user-select:none; }
-  .track .icon:hover{ text-decoration:underline; }
-
+  .track{ display:flex; align-items:center; gap:0.55rem; margin:0.65rem 0; }
+  .track .icon{ font-size:1.6rem; line-height:1; cursor:pointer; user-select:none; flex:0 0 auto; }
   .value-badge{
-    min-width: 2.2ch; padding: 0.15rem 0.45rem; border: 1px solid #ddd;
-    border-radius: 999px; background: #fff; font-weight: 700;
-    font-variant-numeric: tabular-nums; text-align: center; line-height: 1.1;
+    min-width: 2.4ch; padding: 0.18rem 0.5rem; border:1px solid #ddd; border-radius:999px;
+    background:#fff; font-weight:700; font-variant-numeric: tabular-nums; text-align:center; line-height:1.1; flex:0 0 auto;
   }
 
+  /* Meters: círculos perfectos, planos, autosize según # de casillas */
   .meter{
-    --fill:#e53935; --fill-weak:#ffd6d6; --segment-size:22px; --segment-radius:6px;
-    display:inline-flex; flex-direction:row-reverse; gap:4px; user-select:none;
+    --fill:#e53935;
+    display:inline-flex; flex-direction:row-reverse; gap:var(--seg-gap); user-select:none;
+    flex:1 1 auto; justify-content:flex-end; align-items:center;
   }
   .meter input[type="radio"]{ position:absolute; opacity:0; pointer-events:none; }
   .meter label{
-    width:var(--segment-size); height:var(--segment-size); border:1px solid #ccc; border-radius:var(--segment-radius);
-    background:#f6f6f6; cursor:pointer; transition:background .15s, border-color .15s;
+    border:1px solid #cfcfcf;
+    border-radius:50%;
+    background:#f3f3f3;
+    cursor:pointer;
+    flex:0 0 auto;
+    aspect-ratio:1/1;
   }
   .meter input[type="radio"]:checked ~ label{ background:var(--fill); border-color:var(--fill); }
-  .meter label:hover, .meter label:hover ~ label{ background:var(--fill-weak); border-color:var(--fill); }
 
-  .meter.attack { --fill:#f39c12; --fill-weak:#ffe5b3; }
-  .meter.defense{ --fill:#3498db; --fill-weak:#d5ecff; }
-  .meter.mind   { --fill:#6a5acd; --fill-weak:#e2dcff; }
-  .meter.level  { --fill:#2ecc71; --fill-weak:#d7f5e4; }
+  .meter.ten label{
+    width: calc((100% - (9 * var(--seg-gap))) / 10);
+    max-width:28px; min-width:16px;
+  }
+  .meter.fourteen label{
+    width: calc((100% - (13 * var(--seg-gap))) / 14);
+    max-width:24px; min-width:12px;
+  }
 
-  .coins-card{ border:1px solid #ddd; border-radius:var(--radius); padding:0.75rem; background:#fff;
-    display:flex; align-items:center; justify-content:center; gap:0.75rem; }
-  .coins-emoji{ font-size:1.6rem; }
-  .coins-input{ width:110px; text-align:center; font-size:1.05rem; border:1px solid #ccc; border-radius:6px; height:40px; }
+  .meter.attack { --fill:#f39c12; } /* dorado */
+  .meter.defense{ --fill:#3498db; } /* azul */
+  .meter.mind   { --fill:#6a5acd; } /* violeta */
+  .meter.level  { --fill:#2ecc71; } /* verde */
+  /* por defecto (cuerpo) rojo */
+  .meter:not(.attack):not(.defense):not(.mind):not(.level){ --fill:#e53935; }
+
+  /* Nivel: título + badge en la misma línea, centrados con pequeño margen inferior */
+  .level-header{
+    display:flex; align-items:center; justify-content:center; gap:0.55rem;
+    font-size:1.05rem; margin:0 0 0.4rem 0; padding:0;
+  }
+  .level-header .title{ cursor:pointer; user-select:none; }
+  .level-header .badge{ transform: translateY(1px); }
+
+  .coins-card{ border:1px solid #ddd; border-radius:var(--radius); padding:0.8rem; background:#fff;
+    display:flex; align-items:center; justify-content:center; gap:0.85rem; }
+  .coins-emoji{ font-size:2rem; }
+  .coins-input{ width:120px; text-align:center; font-size:1.15rem; border:1px solid #ccc; border-radius:10px; height:var(--btn-h); }
 
   .input-row{ background:#fff; border:1px solid #ddd; border-radius:var(--radius);
-    padding:0.4rem 0.6rem; display:flex; align-items:center; gap:0.5rem; }
-  .input-row input[type="text"]{ border:none; outline:none; flex:1; font-size:1rem; }
-  .input-row .icon{ font-size:1.1rem; }
+    padding:0.55rem 0.75rem; display:flex; align-items:center; gap:0.6rem; }
+  .input-row input[type="text"]{ border:none; outline:none; flex:1; font-size:1.05rem; }
+  .input-row .icon{ font-size:1.25rem; }
 
   /* Controles */
-  .controls, .controls-bottom{
-    max-width:640px; margin:0.5rem auto 0.75rem;
-    display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; justify-content:flex-start; font-size:1rem;
+  .controls, .controls-bottom{ max-width:640px; margin:0.5rem auto 0.8rem; }
+  .controls-select{
+    flex:0 0 auto; width:210px; border:1px solid #ddd; border-radius:12px; padding:0.45rem 0.65rem; background:#fff;
+    font-size:1.05rem; height:var(--btn-h);
   }
-  .controls-select{ flex:1 1 220px; border:1px solid #ddd; border-radius:8px; padding:0.3rem 0.5rem; background:#fff; font-size:1rem; height:38px; }
-  .btn{ border:1px solid #ccc; background:#fff; border-radius:8px; padding:0.4rem 0.7rem; cursor:pointer; font-size:1rem; height:38px; }
+  .btn{ border:1px solid #ccc; background:#fff; border-radius:12px; padding:0.5rem 0.8rem; cursor:pointer;
+    font-size:1.05rem; height:var(--btn-h); touch-action:manipulation; flex:0 0 auto; }
   .btn:hover{ background:#f3f3f3; }
-  .muted{ font-size:0.95rem; color:#555; margin-left:auto; }
-  .file-input{ display:none; }
-  .banner{ background:#fff3cd; border:1px solid #ffeeba; color:#856404; padding:0.5rem 0.75rem; border-radius:8px; max-width:640px; margin:0.5rem auto; display:none; }
+  .btn:active{ transform:translateY(1px); }
+  .muted{ font-size:0.95rem; color:#555; min-height:1.2em; margin-left:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-  @media (max-width:420px){
-    body{ font-size:14px; }
-    .meter{ --segment-size:18px; }
-    .controls-select, .btn{ height:34px; }
-  }
+  .file-input{ display:none; }
+
+  /* Footer de versión */
+  footer{ text-align:center; color:#aaa; font-size:0.85rem; margin:1.1rem 0 0.2rem; }
 </style>
 </head>
 <body>
 <h1>HOJA DE PERSONAJE</h1>
 
-<div id="no-storage" class="banner" role="status" aria-live="polite">
-  ⚠️ El almacenamiento del navegador parece estar desactivado. Se ofrecerán enlaces con estado y exportación/importación.
-</div>
-
-<!-- Fila 1: selector + Guardar + Cargar -->
-<div class="controls">
-  <select id="slot" class="controls-select" title="Ranura de personaje">
+<!-- Fila superior: selector + Cargar + Guardar -->
+<div class="controls row-oneline">
+  <select id="slot" class="controls-select" title="Personaje">
     <option value="1">Personaje 1</option>
     <option value="2">Personaje 2</option>
     <option value="3">Personaje 3</option>
     <option value="4">Personaje 4</option>
     <option value="5">Personaje 5</option>
   </select>
-  <button id="btn-guardar" class="btn" type="button">Guardar</button>
   <button id="btn-cargar" class="btn" type="button">Cargar</button>
+  <button id="btn-guardar" class="btn" type="button">Guardar</button>
   <span id="status" class="muted" aria-live="polite"></span>
 </div>
 
@@ -115,12 +136,12 @@
     </div>
   </div>
 
-  <!-- ⚔️🛡️ SECCIÓN DE COMBATE -->
+  <!-- ⚔️🛡️ COMBATE -->
   <fieldset>
-    <div class="track">
+    <div class="track row-oneline">
       <span id="icon-ataque" class="icon" title="Pulsar para reiniciar">⚔️</span>
       <span class="value-badge" id="val-ataque">0</span>
-      <div class="meter attack">
+      <div class="meter attack ten">
         <input type="radio" id="ataque_0" name="ataque" value="0">
         <input type="radio" id="ataque_10" name="ataque" value="10"><label for="ataque_10"></label>
         <input type="radio" id="ataque_9" name="ataque" value="9"><label for="ataque_9"></label>
@@ -135,10 +156,10 @@
       </div>
     </div>
 
-    <div class="track">
+    <div class="track row-oneline">
       <span id="icon-defensa" class="icon" title="Pulsar para reiniciar">🛡️</span>
       <span class="value-badge" id="val-defensa">0</span>
-      <div class="meter defense">
+      <div class="meter defense ten">
         <input type="radio" id="defensa_0" name="defensa" value="0">
         <input type="radio" id="defensa_10" name="defensa" value="10"><label for="defensa_10"></label>
         <input type="radio" id="defensa_9" name="defensa" value="9"><label for="defensa_9"></label>
@@ -154,12 +175,12 @@
     </div>
   </fieldset>
 
-  <!-- ❤️🧠 SECCIÓN DE ESTADO -->
+  <!-- ❤️🧠 ESTADO -->
   <fieldset>
-    <div class="track">
+    <div class="track row-oneline">
       <span id="icon-cuerpo" class="icon" title="Pulsar para reiniciar">&hearts;️</span>
       <span class="value-badge" id="val-cuerpo">0</span>
-      <div class="meter">
+      <div class="meter ten">
         <input type="radio" id="cuerpo_0" name="cuerpo" value="0">
         <input type="radio" id="cuerpo_10" name="cuerpo" value="10"><label for="cuerpo_10"></label>
         <input type="radio" id="cuerpo_9" name="cuerpo" value="9"><label for="cuerpo_9"></label>
@@ -174,10 +195,10 @@
       </div>
     </div>
 
-    <div class="track">
+    <div class="track row-oneline">
       <span id="icon-mente" class="icon" title="Pulsar para reiniciar">🧠</span>
       <span class="value-badge" id="val-mente">0</span>
-      <div class="meter mind">
+      <div class="meter mind ten">
         <input type="radio" id="mente_0" name="menteP" value="0">
         <input type="radio" id="mente_10" name="menteP" value="10"><label for="mente_10"></label>
         <input type="radio" id="mente_9" name="menteP" value="9"><label for="mente_9"></label>
@@ -199,18 +220,20 @@
     <input id="oro" name="oro" class="coins-input" type="number" min="0" max="999" step="1" value="0" />
   </fieldset>
 
-  <!-- 🎒 Objetos (mochila) -->
+  <!-- 🎒 Objetos -->
   <div class="input-row" style="margin-bottom:1rem;">
     <span class="icon">🎒</span>
     <input id="objetos" name="objetos" type="text" placeholder="Objetos" />
   </div>
 
-  <!-- Nivel (14 casillas) -->
+  <!-- Nivel (círculos, 14 casillas) -->
   <fieldset>
-    <div class="track">
-      <span id="icon-nivel" class="icon" title="Pulsar para reiniciar">Nivel</span>
-      <span class="value-badge" id="val-nivel">0</span>
-      <div class="meter level">
+    <div class="level-header">
+      <span id="icon-nivel" class="title" title="Pulsar para reiniciar">Nivel</span>
+      <span class="value-badge badge" id="val-nivel">0</span>
+    </div>
+    <div class="track row-oneline" style="margin-top:0;">
+      <div class="meter level fourteen">
         <input type="radio" id="nivel_0" name="nivel" value="0">
         <input type="radio" id="nivel_14" name="nivel" value="14"><label for="nivel_14"></label>
         <input type="radio" id="nivel_13" name="nivel" value="13"><label for="nivel_13"></label>
@@ -231,45 +254,47 @@
   </fieldset>
 </form>
 
-<!-- Fila 2: después de Nivel -->
-<div class="controls-bottom">
+<!-- Fila inferior: Nueva + Exportar + Importar + Enlace -->
+<div class="controls-bottom row-oneline">
   <button id="btn-nueva" class="btn" type="button">Nueva</button>
   <button id="btn-exportar" class="btn" type="button">Exportar</button>
-  <label class="btn" for="import-file">Importar</label>
+  <button id="btn-importar" class="btn" type="button">Importar</button>
   <input id="import-file" class="file-input" type="file" accept="application/json" />
-  <button id="btn-enlace" class="btn" type="button" title="Genera un enlace con el estado actual">Copiar enlace</button>
+  <button id="btn-enlace" class="btn" type="button" title="Genera un enlace con el estado actual">Enlace</button>
 </div>
+
+<footer>Versión: v16</footer>
 
 <script>
 /* -------- Medidores: badges y reset por icono -------- */
-function bindMeter(name, outputId) {
+function bindMeter(name, outputId) {{
   const nodes = document.querySelectorAll('input[name="'+name+'"]');
   const radios = Array.from(nodes).filter(n => n.type === 'radio');
   const out = document.getElementById(outputId);
   if (!nodes.length || !out) return;
-  const update = () => {
+  const update = () => {{
     const checked = radios.find(r => r.checked);
     const val = checked ? Number(checked.value || 0) : 0;
     out.textContent = val;
-  };
+  }};
   nodes.forEach(el => el.addEventListener('input', update));
   nodes.forEach(el => el.addEventListener('change', update));
   update();
-}
+}}
 ['ataque','defensa','cuerpo','menteP','nivel'].forEach(n=> bindMeter(n, 'val-'+(n==='menteP'?'mente':n)));
 
-function enableIconReset(iconId, groupName, outputId){
+function enableIconReset(iconId, groupName, outputId){{
   const icon = document.getElementById(iconId);
   const out = document.getElementById(outputId);
   const form = document.getElementById('hoja');
   if (!icon) return;
-  icon.addEventListener('click', ()=>{
+  icon.addEventListener('click', ()=>{{
     const radios = Array.from(document.querySelectorAll('input[name="'+groupName+'"]')).filter(r=>r.type==='radio');
     radios.forEach(r => r.checked = false);
     if (out) out.textContent = '0';
     form.dispatchEvent(new Event('change', {bubbles:true}));
-  });
-}
+  }});
+}}
 enableIconReset('icon-ataque','ataque','val-ataque');
 enableIconReset('icon-defensa','defensa','val-defensa');
 enableIconReset('icon-cuerpo','cuerpo','val-cuerpo');
@@ -279,11 +304,8 @@ enableIconReset('icon-nivel','nivel','val-nivel');
 /* -------- Utilidades -------- */
 const KEY = (slot) => `hojaPJ:slot:${slot}`;
 const nowISO = () => new Date().toISOString();
-function canUseStorage(){
-  try{ const k='__test__'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; }catch(e){ return false; }
-}
+function canUseStorage(){ try{ const k='__test__'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; }catch(e){ return false; } }
 const STORAGE_OK = canUseStorage();
-if (!STORAGE_OK){ document.getElementById('no-storage').style.display = 'block'; }
 
 function encodeStateToUrl(stateObj){
   const json = JSON.stringify(stateObj);
@@ -302,7 +324,7 @@ function decodeStateFromUrl(){
   }catch(e){ return null; }
 }
 
-/* -------- Persistencia por ranura (GUARDA TODO) -------- */
+/* -------- Persistencia por ranura con verificación -------- */
 (function(){
   const FORM = document.getElementById('hoja');
   const SLOT = document.getElementById('slot');
@@ -312,6 +334,7 @@ function decodeStateFromUrl(){
   const BTN_NUEVA = document.getElementById('btn-nueva');
   const BTN_EXPORTAR = document.getElementById('btn-exportar');
   const BTN_ENLACE = document.getElementById('btn-enlace');
+  const BTN_IMPORTAR = document.getElementById('btn-importar');
   const FILE_IMPORT = document.getElementById('import-file');
 
   function serialize(){
@@ -325,7 +348,7 @@ function decodeStateFromUrl(){
       const el = FORM.querySelector('[name="'+n+'"]');
       data[n] = el ? el.value : '';
     });
-    return { version: 8, slot: String(SLOT.value), updatedAt: nowISO(), data };
+    return { version: 16, slot: String(SLOT.value), updatedAt: nowISO(), data };
   }
 
   function deserialize(saved){
@@ -343,24 +366,24 @@ function decodeStateFromUrl(){
       const el = FORM.querySelector('[name="'+n+'"]');
       if (el && d[n] !== undefined){ el.value = d[n]; }
     });
-    bindMeter('ataque','val-ataque');
-    bindMeter('defensa','val-defensa');
-    bindMeter('cuerpo','val-cuerpo');
-    bindMeter('menteP','val-mente');
-    bindMeter('nivel','val-nivel');
+    bindMeter('ataque','val-ataque'); bindMeter('defensa','val-defensa');
+    bindMeter('cuerpo','val-cuerpo'); bindMeter('menteP','val-mente'); bindMeter('nivel','val-nivel');
   }
 
-  function setStatus(msg){ STATUS.textContent = msg; }
+  function setStatus(msg){ if (STATUS) STATUS.textContent = msg; }
 
   function save(slot){
+    if (!STORAGE_OK){ setStatus('⚠️ Sin almacenamiento. Usa “Enlace” o Exportar.'); return; }
     const payload = serialize();
-    if (STORAGE_OK){
+    try{
       localStorage.setItem(KEY(slot), JSON.stringify(payload));
-      setStatus(`Guardado en Personaje ${slot} · ${new Date(payload.updatedAt).toLocaleString()}`);
-    } else {
-      const url = encodeStateToUrl(payload);
-      navigator.clipboard?.writeText(url);
-      setStatus('Sin almacenamiento. Enlace con estado copiado al portapapeles.');
+      // Verificación inmediata
+      const check = JSON.parse(localStorage.getItem(KEY(slot)) || 'null');
+      const ok = !!check && JSON.stringify(check.data) === JSON.stringify(payload.data);
+      setStatus(ok ? `✅ Guardado verificado en Personaje ${slot} · ${new Date(payload.updatedAt).toLocaleString()}`
+                   : `⚠️ Guardado con dudas en Personaje ${slot}`);
+    }catch(e){
+      setStatus('❌ Error al guardar. Revisa permisos de navegación privada/cookies.');
     }
   }
 
@@ -368,7 +391,7 @@ function decodeStateFromUrl(){
     if (!STORAGE_OK){
       const fromUrl = decodeStateFromUrl();
       if (fromUrl){ deserialize(fromUrl); if(!silent) setStatus('Cargado desde enlace.'); return true; }
-      if (!silent) setStatus('Sin almacenamiento. Proporciona un enlace o importa JSON.');
+      if (!silent) setStatus('Sin almacenamiento disponible. Importa JSON o pega un enlace con estado.');
       return false;
     }
     const raw = localStorage.getItem(KEY(slot));
@@ -397,12 +420,9 @@ function decodeStateFromUrl(){
     ['nombre','clase','objetos'].forEach(n=>{ const el = FORM.querySelector('[name="'+n+'"]'); if (el) el.value = ''; });
   }
 
-  // Autosave (debounce 800ms)
+  // Autosave (debounce 700ms)
   let t;
-  function scheduleAutosave(){
-    clearTimeout(t);
-    t = setTimeout(()=> save(SLOT.value), 800);
-  }
+  function scheduleAutosave(){ clearTimeout(t); t = setTimeout(()=> save(SLOT.value), 700); }
   FORM.addEventListener('input', scheduleAutosave);
   FORM.addEventListener('change', scheduleAutosave);
 
@@ -412,49 +432,31 @@ function decodeStateFromUrl(){
   BTN_NUEVA.addEventListener('click', ()=>{ clearForm(); setStatus('Nuevo personaje iniciado (no guardado aún)'); });
   BTN_EXPORTAR.addEventListener('click', ()=>{
     const slot = SLOT.value;
-    const raw = STORAGE_OK ? (localStorage.getItem(KEY(slot)) || JSON.stringify(serialize(), null, 2)) : JSON.stringify(serialize(), null, 2);
+    const raw = localStorage.getItem(KEY(slot)) || JSON.stringify(serialize(), null, 2);
     const blob = new Blob([raw], {type:'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `hoja-personaje-${slot}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `hoja-personaje-${slot}.json`; a.click(); URL.revokeObjectURL(a.href);
   });
-  BTN_ENLACE.addEventListener('click', ()=>{
-    const url = encodeStateToUrl(serialize());
-    navigator.clipboard?.writeText(url);
-    setStatus('Enlace con estado copiado.');
-  });
-
+  BTN_ENLACE.addEventListener('click', ()=>{ const url = encodeStateToUrl(serialize()); navigator.clipboard?.writeText(url); setStatus('Enlace con estado copiado.'); });
+  BTN_IMPORTAR.addEventListener('click', ()=> FILE_IMPORT.click());
   FILE_IMPORT.addEventListener('change', (ev)=>{
-    const file = ev.target.files[0];
-    if (!file) return;
+    const file = ev.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = ()=>{
       try{
         const json = JSON.parse(reader.result);
         deserialize(json);
-        if (STORAGE_OK){
-          localStorage.setItem(KEY(SLOT.value), JSON.stringify(json));
-          setStatus(`Importado y guardado en Personaje ${SLOT.value}`);
-        } else {
-          setStatus('Importado (sin almacenamiento). Usa "Copiar enlace" o Exportar.');
-        }
-      }catch(e){
-        setStatus('Archivo inválido');
-      }
+        localStorage.setItem(KEY(SLOT.value), JSON.stringify(json));
+        setStatus(`Importado y guardado en Personaje ${SLOT.value}`);
+      }catch(e){ setStatus('Archivo inválido'); }
       FILE_IMPORT.value = '';
     };
     reader.readAsText(file, 'utf-8');
   });
 
-  // Cambiar ranura => intenta carga silenciosa
-  SLOT.addEventListener('change', ()=>{
-    const ok = load(SLOT.value, true);
-    setStatus(ok ? `Personaje ${SLOT.value} cargado` : `Personaje ${SLOT.value} vacío`);
-  });
+  // Cambio de slot => carga silenciosa
+  SLOT.addEventListener('change', ()=>{ const ok = load(SLOT.value, true); setStatus(ok ? `Personaje ${SLOT.value} cargado` : `Personaje ${SLOT.value} vacío`); });
 
-  // Inicio: intenta cargar desde URL; si no, desde la ranura actual
+  // Inicio
   const fromUrl = decodeStateFromUrl();
   if (fromUrl){ deserialize(fromUrl); setStatus('Estado precargado desde enlace.'); }
   else { load(SLOT.value, true); }
