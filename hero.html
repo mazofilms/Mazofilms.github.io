@@ -9,15 +9,15 @@
   *{ box-sizing:border-box; }
   body{ font-family:Arial, Helvetica, sans-serif; margin:12px; background:#fafafa; font-size:var(--font-base); }
   h1{ text-align:center; font-size:1.4rem; margin-bottom:0.75rem; }
-  form{ max-width:600px; margin:0 auto; }
+  form{ max-width:640px; margin:0 auto; }
 
   .header-row{ display:flex; gap:var(--gap); flex-wrap:wrap; margin-bottom:0.75rem; }
   .header-field{
-    display:flex; align-items:center; flex:1 1 45%; gap:0.4rem;
+    display:flex; align-items:center; flex:1 1 48%; gap:0.4rem;
     background:#fff; border:1px solid #ddd; border-radius:var(--radius);
     padding:0.4rem 0.6rem;
   }
-  .header-field .icon{ font-size:1.3rem; flex-shrink:0; }
+  .header-field .icon{ font-size:1.1rem; flex-shrink:0; }
   .header-field input[type="text"]{ border:none; outline:none; flex:1; font-size:1rem; }
 
   fieldset{
@@ -25,36 +25,23 @@
     padding:0.75rem; margin:1rem 0; background:#fff;
   }
 
-  .track{
-    display:flex; align-items:center; gap:0.6rem;
-    justify-content:center; margin:0.75rem 0; flex-wrap:wrap;
-  }
+  .track{ display:flex; align-items:center; gap:0.6rem; justify-content:center; margin:0.75rem 0; flex-wrap:wrap; }
   .track .icon{ font-size:1rem; line-height:1; text-align:center; cursor:pointer; user-select:none; }
   .track .icon:hover{ text-decoration:underline; }
 
   .value-badge{
-    min-width: 2.2ch;
-    padding: 0.15rem 0.45rem;
-    border: 1px solid #ddd;
-    border-radius: 999px;
-    background: #fff;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    text-align: center;
-    line-height: 1.1;
+    min-width: 2.2ch; padding: 0.15rem 0.45rem; border: 1px solid #ddd;
+    border-radius: 999px; background: #fff; font-weight: 700;
+    font-variant-numeric: tabular-nums; text-align: center; line-height: 1.1;
   }
 
   .meter{
-    --fill:#e53935;
-    --fill-weak:#ffd6d6;
-    --segment-size:22px;
-    --segment-radius:6px;
+    --fill:#e53935; --fill-weak:#ffd6d6; --segment-size:22px; --segment-radius:6px;
     display:inline-flex; flex-direction:row-reverse; gap:4px; user-select:none;
   }
   .meter input[type="radio"]{ position:absolute; opacity:0; pointer-events:none; }
   .meter label{
-    width:var(--segment-size); height:var(--segment-size);
-    border:1px solid #ccc; border-radius:var(--segment-radius);
+    width:var(--segment-size); height:var(--segment-size); border:1px solid #ccc; border-radius:var(--segment-radius);
     background:#f6f6f6; cursor:pointer; transition:background .15s, border-color .15s;
   }
   .meter input[type="radio"]:checked ~ label{ background:var(--fill); border-color:var(--fill); }
@@ -65,46 +52,30 @@
   .meter.mind   { --fill:#6a5acd; --fill-weak:#e2dcff; }
   .meter.level  { --fill:#2ecc71; --fill-weak:#d7f5e4; }
 
-  .coins-card{
-    border:1px solid #ddd; border-radius:var(--radius); padding:0.75rem; background:#fff;
-    display:flex; align-items:center; justify-content:center; gap:0.75rem;
-  }
-  .coins-emoji{ font-size:1.8rem; }
-  .coins-input{
-    width:100px; text-align:center; font-size:1.2rem;
-    border:1px solid #ccc; border-radius:6px; height:40px;
-  }
+  .coins-card{ border:1px solid #ddd; border-radius:var(--radius); padding:0.75rem; background:#fff;
+    display:flex; align-items:center; justify-content:center; gap:0.75rem; }
+  .coins-emoji{ font-size:1.6rem; }
+  .coins-input{ width:110px; text-align:center; font-size:1.05rem; border:1px solid #ccc; border-radius:6px; height:40px; }
 
-  .input-row{
-    background:#fff; border:1px solid #ddd; border-radius:var(--radius);
-    padding:0.4rem 0.6rem; display:flex; align-items:center; gap:0.5rem;
-  }
+  .input-row{ background:#fff; border:1px solid #ddd; border-radius:var(--radius);
+    padding:0.4rem 0.6rem; display:flex; align-items:center; gap:0.5rem; }
   .input-row input[type="text"]{ border:none; outline:none; flex:1; font-size:1rem; }
-  .input-row .icon{ font-size:1.3rem; }
+  .input-row .icon{ font-size:1.1rem; }
 
-  /* --- Controles --- */
+  /* Controles */
   .controls, .controls-bottom{
-    max-width:600px; margin:0.5rem auto 0.75rem;
-    display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;
-    justify-content:flex-start; font-size:1rem;
+    max-width:640px; margin:0.5rem auto 0.75rem;
+    display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; justify-content:flex-start; font-size:1rem;
   }
-  .controls-select{
-    flex:1 1 180px; border:1px solid #ddd; border-radius:8px; padding:0.3rem 0.5rem; background:#fff;
-    font-size:1rem; height:38px;
-  }
-  .btn{
-    border:1px solid #ccc; background:#fff; border-radius:8px; padding:0.4rem 0.7rem; cursor:pointer;
-    font-size:1rem; height:38px;
-  }
+  .controls-select{ flex:1 1 220px; border:1px solid #ddd; border-radius:8px; padding:0.3rem 0.5rem; background:#fff; font-size:1rem; height:38px; }
+  .btn{ border:1px solid #ccc; background:#fff; border-radius:8px; padding:0.4rem 0.7rem; cursor:pointer; font-size:1rem; height:38px; }
   .btn:hover{ background:#f3f3f3; }
   .muted{ font-size:0.95rem; color:#555; margin-left:auto; }
   .file-input{ display:none; }
-  .banner{ background:#fff3cd; border:1px solid #ffeeba; color:#856404; padding:0.5rem 0.75rem; border-radius:8px; max-width:600px; margin:0.5rem auto; display:none; }
+  .banner{ background:#fff3cd; border:1px solid #ffeeba; color:#856404; padding:0.5rem 0.75rem; border-radius:8px; max-width:640px; margin:0.5rem auto; display:none; }
 
-  @media (max-width:400px){
+  @media (max-width:420px){
     body{ font-size:14px; }
-    .track .icon{ font-size:1rem; }
-    .coins-input{ height:36px; width:80px; font-size:1rem; }
     .meter{ --segment-size:18px; }
     .controls-select, .btn{ height:34px; }
   }
@@ -113,9 +84,8 @@
 <body>
 <h1>HOJA DE PERSONAJE</h1>
 
-<!-- Aviso de modo sin almacenamiento -->
-<div id="no-storage" class="banner">
-  ⚠️ El almacenamiento del navegador parece estar desactivado (modo incógnito, bloqueo de cookies o iframe). Esta hoja usará <strong>enlaces con estado</strong> y <strong>archivos</strong> para guardar/cargar.
+<div id="no-storage" class="banner" role="status" aria-live="polite">
+  ⚠️ El almacenamiento del navegador parece estar desactivado. Se ofrecerán enlaces con estado y exportación/importación.
 </div>
 
 <!-- Fila 1: selector + Guardar + Cargar -->
@@ -132,10 +102,11 @@
   <span id="status" class="muted" aria-live="polite"></span>
 </div>
 
-<form id="hoja">
+<form id="hoja" autocomplete="off">
   <!-- Nombre y Clase -->
   <div class="header-row">
     <div class="header-field">
+      <span class="icon">👤</span>
       <input id="nombre" name="nombre" type="text" placeholder="Nombre" />
     </div>
     <div class="header-field">
@@ -228,7 +199,7 @@
     <input id="oro" name="oro" class="coins-input" type="number" min="0" max="999" step="1" value="0" />
   </fieldset>
 
-  <!-- 🎒 Objetos -->
+  <!-- 🎒 Objetos (mochila) -->
   <div class="input-row" style="margin-bottom:1rem;">
     <span class="icon">🎒</span>
     <input id="objetos" name="objetos" type="text" placeholder="Objetos" />
@@ -270,7 +241,7 @@
 </div>
 
 <script>
-/* ----------- UI de medidores ----------- */
+/* -------- Medidores: badges y reset por icono -------- */
 function bindMeter(name, outputId) {
   const nodes = document.querySelectorAll('input[name="'+name+'"]');
   const radios = Array.from(nodes).filter(n => n.type === 'radio');
@@ -285,13 +256,8 @@ function bindMeter(name, outputId) {
   nodes.forEach(el => el.addEventListener('change', update));
   update();
 }
-bindMeter('ataque','val-ataque');
-bindMeter('defensa','val-defensa');
-bindMeter('cuerpo','val-cuerpo');
-bindMeter('menteP','val-mente');
-bindMeter('nivel','val-nivel');
+['ataque','defensa','cuerpo','menteP','nivel'].forEach(n=> bindMeter(n, 'val-'+(n==='menteP'?'mente':n)));
 
-/* ---- Reset al pulsar icono: deja 0 y ninguna casilla marcada ---- */
 function enableIconReset(iconId, groupName, outputId){
   const icon = document.getElementById(iconId);
   const out = document.getElementById(outputId);
@@ -310,21 +276,14 @@ enableIconReset('icon-cuerpo','cuerpo','val-cuerpo');
 enableIconReset('icon-mente','menteP','val-mente');
 enableIconReset('icon-nivel','nivel','val-nivel');
 
-/* ----------- Utilidades ----------- */
+/* -------- Utilidades -------- */
 const KEY = (slot) => `hojaPJ:slot:${slot}`;
 const nowISO = () => new Date().toISOString();
 function canUseStorage(){
-  try{
-    const k='__test__';
-    localStorage.setItem(k,'1');
-    localStorage.removeItem(k);
-    return true;
-  }catch(e){ return false; }
+  try{ const k='__test__'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; }catch(e){ return false; }
 }
 const STORAGE_OK = canUseStorage();
-if (!STORAGE_OK){
-  document.getElementById('no-storage').style.display = 'block';
-}
+if (!STORAGE_OK){ document.getElementById('no-storage').style.display = 'block'; }
 
 function encodeStateToUrl(stateObj){
   const json = JSON.stringify(stateObj);
@@ -343,7 +302,7 @@ function decodeStateFromUrl(){
   }catch(e){ return null; }
 }
 
-/* ----------- Persistencia: guarda TODO (radios + texto/número) ----------- */
+/* -------- Persistencia por ranura (GUARDA TODO) -------- */
 (function(){
   const FORM = document.getElementById('hoja');
   const SLOT = document.getElementById('slot');
@@ -362,30 +321,27 @@ function decodeStateFromUrl(){
       const checked = radios.find(r=>r.checked);
       data[name] = checked ? checked.value : '0';
     });
-    FORM.querySelectorAll('input[type="text"], input[type="number"]').forEach(el=>{
-      if (el.name) data[el.name] = el.value;
+    ['nombre','clase','oro','objetos'].forEach(n=>{
+      const el = FORM.querySelector('[name="'+n+'"]');
+      data[n] = el ? el.value : '';
     });
-    return { version: 7, updatedAt: nowISO(), data };
+    return { version: 8, slot: String(SLOT.value), updatedAt: nowISO(), data };
   }
 
   function deserialize(saved){
     if (!saved || !saved.data) return;
     const d = saved.data;
-    Object.keys(d).forEach(name=>{
-      const nodes = Array.from(FORM.querySelectorAll('[name="'+name+'"]'));
-      if (!nodes.length) return;
-      const isRadioGroup = nodes.some(n => n.type === 'radio');
-      if (isRadioGroup){
-        const radios = nodes.filter(n=>n.type==='radio');
-        radios.forEach(r=> r.checked = false);
-        if (String(d[name]) !== '0'){
-          const match = radios.find(r => String(r.value) === String(d[name]));
-          if (match){ match.checked = true; }
-        }
-      } else {
-        const el = nodes[0];
-        el.value = d[name];
+    ['ataque','defensa','cuerpo','menteP','nivel'].forEach(name=>{
+      const radios = Array.from(FORM.querySelectorAll('input[name="'+name+'"]')).filter(n=>n.type==='radio');
+      radios.forEach(r=> r.checked = false);
+      if (String(d[name]||'0') !== '0'){
+        const match = radios.find(r => String(r.value) === String(d[name]));
+        if (match){ match.checked = true; }
       }
+    });
+    ['nombre','clase','oro','objetos'].forEach(n=>{
+      const el = FORM.querySelector('[name="'+n+'"]');
+      if (el && d[n] !== undefined){ el.value = d[n]; }
     });
     bindMeter('ataque','val-ataque');
     bindMeter('defensa','val-defensa');
@@ -437,14 +393,15 @@ function decodeStateFromUrl(){
     ['val-ataque','val-defensa','val-cuerpo','val-mente','val-nivel'].forEach(id=>{
       const el = document.getElementById(id); if (el) el.textContent = '0';
     });
-    FORM.querySelectorAll('input[type="text"], input[type="number"]').forEach(el=> el.value = el.type==='number' ? '0' : '');
+    const oro = FORM.querySelector('[name="oro"]'); if (oro) oro.value = '0';
+    ['nombre','clase','objetos'].forEach(n=>{ const el = FORM.querySelector('[name="'+n+'"]'); if (el) el.value = ''; });
   }
 
-  // Autosave (debounce 1s)
+  // Autosave (debounce 800ms)
   let t;
   function scheduleAutosave(){
     clearTimeout(t);
-    t = setTimeout(()=> save(SLOT.value), 1000);
+    t = setTimeout(()=> save(SLOT.value), 800);
   }
   FORM.addEventListener('input', scheduleAutosave);
   FORM.addEventListener('change', scheduleAutosave);
@@ -491,13 +448,13 @@ function decodeStateFromUrl(){
     reader.readAsText(file, 'utf-8');
   });
 
-  // Cambio de selector -> carga silenciosa (si se puede)
-  document.getElementById('slot').addEventListener('change', ()=>{
+  // Cambiar ranura => intenta carga silenciosa
+  SLOT.addEventListener('change', ()=>{
     const ok = load(SLOT.value, true);
     setStatus(ok ? `Personaje ${SLOT.value} cargado` : `Personaje ${SLOT.value} vacío`);
   });
 
-  // Inicial: intenta cargar desde URL (prioridad), si no desde 1
+  // Inicio: intenta cargar desde URL; si no, desde la ranura actual
   const fromUrl = decodeStateFromUrl();
   if (fromUrl){ deserialize(fromUrl); setStatus('Estado precargado desde enlace.'); }
   else { load(SLOT.value, true); }
