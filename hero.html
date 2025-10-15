@@ -3,18 +3,30 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Hoja de personaje — v16</title>
+<title>HeroQuest: Hoja de Personaje — v23</title>
+<link href="https://fonts.googleapis.com/css2?family=Uncial+Antiqua&display=swap" rel="stylesheet">
 <style>
   :root{
     --gap:0.6rem;
     --radius:14px;
-    --font-base:18px;
-    --btn-h:46px;
+    --font-base:17px; /* equilibrado para móvil con Uncial */
+    --btn-h:44px;
     --seg-gap:6px;
+    --inactive:#f3f3f3; /* casillas inactivas */
   }
   *{ box-sizing:border-box; }
-  body{ font-family:Arial, Helvetica, sans-serif; margin:12px; background:#fafafa; font-size:var(--font-base); }
-  h1{ text-align:center; font-size:1.5rem; margin-bottom:0.8rem; }
+  body{
+    font-family: "Uncial Antiqua", serif;
+    margin:12px;
+    background:#d7b56a; /* fondo pergamino dorado */
+    font-size:var(--font-base);
+    color:#000;
+  }
+  h1{
+    text-align:center;
+    font-size:2rem; /* grande, sin sombra */
+    margin-bottom:0.8rem;
+  }
   form{ max-width:640px; margin:0 auto; }
 
   .row-oneline{ display:flex; align-items:center; gap:0.5rem; flex-wrap:nowrap; overflow:hidden; }
@@ -22,22 +34,30 @@
   .header-row{ display:flex; gap:var(--gap); flex-wrap:wrap; margin-bottom:0.8rem; }
   .header-field{
     display:flex; align-items:center; flex:1 1 100%; gap:0.55rem;
-    background:#fff; border:1px solid #ddd; border-radius:var(--radius);
+    background:#f2ebdb; border:1px solid #000; border-radius:var(--radius);
     padding:0.55rem 0.75rem;
   }
   .header-field .icon{ font-size:1.25rem; flex-shrink:0; }
-  .header-field input[type="text"]{ border:none; outline:none; flex:1; font-size:1.05rem; }
-
-  fieldset{ border:1px solid #ddd; border-radius:var(--radius); padding:0.75rem; margin:0.85rem 0; background:#fff; }
-
-  .track{ display:flex; align-items:center; gap:0.55rem; margin:0.65rem 0; }
-  .track .icon{ font-size:1.6rem; line-height:1; cursor:pointer; user-select:none; flex:0 0 auto; }
-  .value-badge{
-    min-width: 2.4ch; padding: 0.18rem 0.5rem; border:1px solid #ddd; border-radius:999px;
-    background:#fff; font-weight:700; font-variant-numeric: tabular-nums; text-align:center; line-height:1.1; flex:0 0 auto;
+  .header-field input[type="text"]{
+    border:none; outline:none; flex:1; font-size:1.05rem;
+    background:transparent; color:#000; font-family:inherit;
   }
 
-  /* Meters: círculos perfectos, planos, autosize según # de casillas */
+  fieldset{
+    border:1px solid #000; border-radius:var(--radius);
+    padding:0.75rem; margin:0.85rem 0; background:#f2ebdb;
+  }
+
+  .track{ display:flex; align-items:center; gap:0.55rem; margin:0.65rem 0; }
+  .track .icon{ font-size:1.7rem; line-height:1; cursor:pointer; user-select:none; flex:0 0 auto; }
+  .value-badge{
+    min-width: 2.4ch; padding: 0.18rem 0.5rem;
+    border:1px solid #000; border-radius:999px;
+    background:var(--inactive); font-weight:700; font-variant-numeric: tabular-nums;
+    text-align:center; line-height:1.1; flex:0 0 auto;
+  }
+
+  /* Meters: círculos perfectos, planos */
   .meter{
     --fill:#e53935;
     display:inline-flex; flex-direction:row-reverse; gap:var(--seg-gap); user-select:none;
@@ -45,14 +65,14 @@
   }
   .meter input[type="radio"]{ position:absolute; opacity:0; pointer-events:none; }
   .meter label{
-    border:1px solid #cfcfcf;
+    border:1px solid #000;
     border-radius:50%;
-    background:#f3f3f3;
+    background:var(--inactive);
     cursor:pointer;
     flex:0 0 auto;
     aspect-ratio:1/1;
   }
-  .meter input[type="radio"]:checked ~ label{ background:var(--fill); border-color:var(--fill); }
+  .meter input[type="radio"]:checked ~ label{ background:var(--fill); border-color:#000; }
 
   .meter.ten label{
     width: calc((100% - (9 * var(--seg-gap))) / 10);
@@ -67,49 +87,65 @@
   .meter.defense{ --fill:#3498db; } /* azul */
   .meter.mind   { --fill:#6a5acd; } /* violeta */
   .meter.level  { --fill:#2ecc71; } /* verde */
-  /* por defecto (cuerpo) rojo */
-  .meter:not(.attack):not(.defense):not(.mind):not(.level){ --fill:#e53935; }
+  .meter:not(.attack):not(.defense):not(.mind):not(.level){ --fill:#e53935; } /* cuerpo */
 
-  /* Nivel: título + badge en la misma línea, centrados con pequeño margen inferior */
+  /* Nivel: título + badge centrados con pequeño margen inferior */
   .level-header{
-    display:flex; align-items:center; justify-content:center; gap:0.55rem;
-    font-size:1.05rem; margin:0 0 0.4rem 0; padding:0;
+    display:flex; align-items:center; justify-content:center; gap:0.6rem;
+    font-size:1.05rem; margin:0 0 0.45rem 0; padding:0;
   }
   .level-header .title{ cursor:pointer; user-select:none; }
   .level-header .badge{ transform: translateY(1px); }
 
-  .coins-card{ border:1px solid #ddd; border-radius:var(--radius); padding:0.8rem; background:#fff;
-    display:flex; align-items:center; justify-content:center; gap:0.85rem; }
-  .coins-emoji{ font-size:2rem; }
-  .coins-input{ width:120px; text-align:center; font-size:1.15rem; border:1px solid #ccc; border-radius:10px; height:var(--btn-h); }
+  /* Monedas (compacto) */
+  .coins-card{
+    border:1px solid #000; border-radius:var(--radius); padding:0.6rem;
+    background:#f2ebdb; display:flex; align-items:center; justify-content:center; gap:0.75rem;
+  }
+  .coins-emoji{ font-size:1.8rem; }
+  .coins-input{
+    width:120px; text-align:center; font-size:1.1rem;
+    border:1px solid #000; border-radius:10px; height:38px;
+    background:var(--inactive); color:#000; font-family:inherit;
+  }
 
-  .input-row{ background:#fff; border:1px solid #ddd; border-radius:var(--radius);
-    padding:0.55rem 0.75rem; display:flex; align-items:center; gap:0.6rem; }
-  .input-row input[type="text"]{ border:none; outline:none; flex:1; font-size:1.05rem; }
+  .input-row{
+    background:#f2ebdb; border:1px solid #000; border-radius:var(--radius);
+    padding:0.55rem 0.75rem; display:flex; align-items:center; gap:0.6rem;
+  }
+  .input-row input[type="text"]{
+    border:none; outline:none; flex:1; font-size:1.05rem;
+    background:transparent; color:#000; font-family:inherit;
+  }
   .input-row .icon{ font-size:1.25rem; }
 
   /* Controles */
   .controls, .controls-bottom{ max-width:640px; margin:0.5rem auto 0.8rem; }
   .controls-select{
-    flex:0 0 auto; width:210px; border:1px solid #ddd; border-radius:12px; padding:0.45rem 0.65rem; background:#fff;
-    font-size:1.05rem; height:var(--btn-h);
+    flex:0 0 auto; width:210px; border:1px solid #000; border-radius:12px;
+    padding:0.45rem 0.65rem; background:#f2ebdb;
+    font-size:1.05rem; height:var(--btn-h); color:#000; font-family:inherit;
   }
-  .btn{ border:1px solid #ccc; background:#fff; border-radius:12px; padding:0.5rem 0.8rem; cursor:pointer;
-    font-size:1.05rem; height:var(--btn-h); touch-action:manipulation; flex:0 0 auto; }
-  .btn:hover{ background:#f3f3f3; }
+  .btn{
+    border:1px solid #000; background:#f2ebdb; border-radius:12px;
+    padding:0.5rem 0.8rem; cursor:pointer; font-size:1.05rem;
+    height:var(--btn-h); touch-action:manipulation; flex:0 0 auto; color:#000; font-family:inherit;
+  }
+  .btn:hover{ background:#e8e1cf; }
   .btn:active{ transform:translateY(1px); }
-  .muted{ font-size:0.95rem; color:#555; min-height:1.2em; margin-left:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .muted{ font-size:0.95rem; color:#222; min-height:1.2em; margin-left:6px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   .file-input{ display:none; }
 
-  /* Footer de versión */
-  footer{ text-align:center; color:#aaa; font-size:0.85rem; margin:1.1rem 0 0.2rem; }
+  /* Footer de versión (solo número) */
+  footer{ text-align:center; color:#6e6e6e; font-size:0.85rem; margin:1.1rem 0 0.2rem; }
 </style>
 </head>
 <body>
-<h1>HOJA DE PERSONAJE</h1>
+<h1>HeroQuest: Hoja de Personaje</h1>
 
-<!-- Fila superior: selector + Cargar + Guardar -->
+<!-- Fila superior: selector + Guardar -->
 <div class="controls row-oneline">
   <select id="slot" class="controls-select" title="Personaje">
     <option value="1">Personaje 1</option>
@@ -118,7 +154,6 @@
     <option value="4">Personaje 4</option>
     <option value="5">Personaje 5</option>
   </select>
-  <button id="btn-cargar" class="btn" type="button">Cargar</button>
   <button id="btn-guardar" class="btn" type="button">Guardar</button>
   <span id="status" class="muted" aria-live="polite"></span>
 </div>
@@ -214,7 +249,7 @@
     </div>
   </fieldset>
 
-  <!-- 💰 Monedas -->
+  <!-- 💰 Monedas (compacto) -->
   <fieldset class="coins-card">
     <span class="coins-emoji">💰</span>
     <input id="oro" name="oro" class="coins-input" type="number" min="0" max="999" step="1" value="0" />
@@ -263,38 +298,38 @@
   <button id="btn-enlace" class="btn" type="button" title="Genera un enlace con el estado actual">Enlace</button>
 </div>
 
-<footer>Versión: v16</footer>
+<footer>v23</footer>
 
 <script>
 /* -------- Medidores: badges y reset por icono -------- */
-function bindMeter(name, outputId) {{
+function bindMeter(name, outputId) {
   const nodes = document.querySelectorAll('input[name="'+name+'"]');
   const radios = Array.from(nodes).filter(n => n.type === 'radio');
   const out = document.getElementById(outputId);
   if (!nodes.length || !out) return;
-  const update = () => {{
+  const update = () => {
     const checked = radios.find(r => r.checked);
     const val = checked ? Number(checked.value || 0) : 0;
     out.textContent = val;
-  }};
+  };
   nodes.forEach(el => el.addEventListener('input', update));
   nodes.forEach(el => el.addEventListener('change', update));
   update();
-}}
+}
 ['ataque','defensa','cuerpo','menteP','nivel'].forEach(n=> bindMeter(n, 'val-'+(n==='menteP'?'mente':n)));
 
-function enableIconReset(iconId, groupName, outputId){{
+function enableIconReset(iconId, groupName, outputId){
   const icon = document.getElementById(iconId);
   const out = document.getElementById(outputId);
   const form = document.getElementById('hoja');
   if (!icon) return;
-  icon.addEventListener('click', ()=>{{
+  icon.addEventListener('click', ()=>{
     const radios = Array.from(document.querySelectorAll('input[name="'+groupName+'"]')).filter(r=>r.type==='radio');
     radios.forEach(r => r.checked = false);
     if (out) out.textContent = '0';
     form.dispatchEvent(new Event('change', {bubbles:true}));
-  }});
-}}
+  });
+}
 enableIconReset('icon-ataque','ataque','val-ataque');
 enableIconReset('icon-defensa','defensa','val-defensa');
 enableIconReset('icon-cuerpo','cuerpo','val-cuerpo');
@@ -324,13 +359,12 @@ function decodeStateFromUrl(){
   }catch(e){ return null; }
 }
 
-/* -------- Persistencia por ranura con verificación -------- */
+/* -------- Persistencia por ranura -------- */
 (function(){
   const FORM = document.getElementById('hoja');
   const SLOT = document.getElementById('slot');
   const STATUS = document.getElementById('status');
   const BTN_GUARDAR = document.getElementById('btn-guardar');
-  const BTN_CARGAR = document.getElementById('btn-cargar');
   const BTN_NUEVA = document.getElementById('btn-nueva');
   const BTN_EXPORTAR = document.getElementById('btn-exportar');
   const BTN_ENLACE = document.getElementById('btn-enlace');
@@ -348,7 +382,7 @@ function decodeStateFromUrl(){
       const el = FORM.querySelector('[name="'+n+'"]');
       data[n] = el ? el.value : '';
     });
-    return { version: 16, slot: String(SLOT.value), updatedAt: nowISO(), data };
+    return { version: 23, slot: String(SLOT.value), updatedAt: nowISO(), data };
   }
 
   function deserialize(saved){
@@ -377,7 +411,6 @@ function decodeStateFromUrl(){
     const payload = serialize();
     try{
       localStorage.setItem(KEY(slot), JSON.stringify(payload));
-      // Verificación inmediata
       const check = JSON.parse(localStorage.getItem(KEY(slot)) || 'null');
       const ok = !!check && JSON.stringify(check.data) === JSON.stringify(payload.data);
       setStatus(ok ? `✅ Guardado verificado en Personaje ${slot} · ${new Date(payload.updatedAt).toLocaleString()}`
@@ -428,7 +461,6 @@ function decodeStateFromUrl(){
 
   // Botones
   BTN_GUARDAR.addEventListener('click', ()=> save(SLOT.value));
-  BTN_CARGAR.addEventListener('click', ()=> load(SLOT.value));
   BTN_NUEVA.addEventListener('click', ()=>{ clearForm(); setStatus('Nuevo personaje iniciado (no guardado aún)'); });
   BTN_EXPORTAR.addEventListener('click', ()=>{
     const slot = SLOT.value;
@@ -453,7 +485,7 @@ function decodeStateFromUrl(){
     reader.readAsText(file, 'utf-8');
   });
 
-  // Cambio de slot => carga silenciosa
+  // Cambio de slot => carga silenciosa automática
   SLOT.addEventListener('change', ()=>{ const ok = load(SLOT.value, true); setStatus(ok ? `Personaje ${SLOT.value} cargado` : `Personaje ${SLOT.value} vacío`); });
 
   // Inicio
