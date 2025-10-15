@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HeroQuest: Hoja de Personaje — v24</title>
+<title>HeroQuest: Hoja de Personaje — v25</title>
 <link href="https://fonts.googleapis.com/css2?family=Uncial+Antiqua&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -24,12 +24,9 @@
   }
   h1{
     text-align:center;
-    /* Adaptativo: nunca parte en dos líneas */
-    font-size: clamp(1.3rem, 6.4vw, 2.4rem);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis; /* seguridad por si el nombre del sitio fuera más largo en algún dispositivo */
-    margin-bottom:0.8rem; /* mismo margen que antes */
+    font-size:1em;           /* mismo tamaño que el texto base */
+    font-weight:700;         /* negrita */
+    margin-bottom:0.8rem;    /* igual que antes */
   }
   form{ max-width:640px; margin:0 auto; }
 
@@ -302,7 +299,7 @@
   <button id="btn-enlace" class="btn" type="button" title="Genera un enlace con el estado actual">Enlace</button>
 </div>
 
-<footer>v24</footer>
+<footer>v25</footer>
 
 <script>
 /* -------- Medidores: badges y reset por icono -------- */
@@ -386,7 +383,7 @@ function decodeStateFromUrl(){
       const el = FORM.querySelector('[name="'+n+'"]');
       data[n] = el ? el.value : '';
     });
-    return { version: 24, slot: String(SLOT.value), updatedAt: nowISO(), data };
+    return { version: 25, slot: String(SLOT.value), updatedAt: nowISO(), data };
   }
 
   function deserialize(saved){
