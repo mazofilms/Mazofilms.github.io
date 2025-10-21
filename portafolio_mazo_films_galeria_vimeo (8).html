@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mazo Films – Portafolio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --fg: #000; --bg: #fff; --maxw: 1400px; --gap: 2rem; --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Roboto Mono', monospace; color: var(--fg); background: var(--bg); }
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 40px 16px; }
+    .brand { display: grid; place-items: center; margin-bottom: 40px; }
+    .brand img { width: 262px; height: auto; display: block; }
+
+    /* Cuatro portadas por fila */
+    .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--gap); }
+    .card { display: flex; flex-direction: column; align-items: center; text-align: center; }
+
+    .thumb { position: relative; width: 100%; border: 0; padding: 0; cursor: pointer; background: none; }
+    .thumb .poster { display: block; width: 100%; aspect-ratio: 16/9; border-radius: var(--radius); background-size: cover; background-position: center; }
+
+    .meta { margin-top: 14px; font-size: 14px; line-height: 1.4; letter-spacing: .02em; }
+    .meta .upper { text-transform: uppercase; font-weight: 700; }
+
+    /* Lightbox */
+    #lightbox[hidden] { display: none; }
+    #lightbox { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; }
+    #lightbox .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.7); }
+    #lightbox .player-wrap { position: relative; width: min(90vw, 960px); background: #000; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.6); overflow: hidden; animation: fadeIn .3s ease; }
+    #lightbox iframe { width: 100%; aspect-ratio: 16/9; border: 0; }
+    #lightbox .close { position: absolute; top: 8px; right: 12px; border: none; background: rgba(0,0,0,0.5); color: #fff; font-size: 24px; cursor: pointer; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; transition: background 0.2s ease; }
+    #lightbox .close:hover { background: rgba(0,0,0,0.8); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand">
+      <a href="https://mazofilms.github.io/index" aria-label="Inicio">
+        <img src="https://i.ibb.co/dwKM5X6x/Mazo-Mano.png" alt="Mazo Films" />
+      </a>
+    </header>
+
+    <section class="gallery" aria-label="Portafolio de videos">
+      <!-- IMPORTANTE: No pongas comentarios dentro de las etiquetas (entre <tag ... >).
+           Usa los data-* de cada tarjeta para editar fácilmente:
+           - data-youtube-id  → ID del video (lo que va después de v= en YouTube)
+           - data-title       → Título del proyecto (también se usa para el aria-label)
+           - data-poster      → URL de la imagen de portada única para esta tarjeta -->
+
+      <!-- Tarjeta 1 -->
+      <div class="card" data-youtube-id="NhdQkThFQCg" data-title="Proyecto / Pieza 1" data-poster="https://raw.githubusercontent.com/mazofilms/Mazofilms.github.io/refs/heads/main/Untitled_1.11.1.jpg">
+        <button class="thumb" aria-label="Reproducir: Proyecto / Pieza 1">
+          <span class="poster" aria-hidden="true"></span>
+        </button>
+        <div class="meta"><div class="upper">TÍTULO</div></div>
+      </div>
+
+      <!-- Tarjeta 2 -->
+      <div class="card" data-youtube-id="NhdQkThFQCg" data-title="Proyecto / Pieza 2" data-poster="https://i.ibb.co/dwKM5X6x/Mazo-Mano.png">
+        <button class="thumb" aria-label="Reproducir: Proyecto / Pieza 2">
+          <span class="poster" aria-hidden="true"></span>
+        </button>
+        <div class="meta"><div class="upper">TÍTULO</div></div>
+      </div>
+
+      <!-- Duplica las tarjetas anteriores y cambia los data-* para cada proyecto -->
+
+    </section>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" hidden>
+    <div class="backdrop" data-close></div>
+    <div class="player-wrap">
+      <button class="close" aria-label="Cerrar" data-close>&times;</button>
+      <iframe id="player" title="Reproductor YouTube" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <script>
+    // Asigna la imagen de portada leyendo el atributo data-poster de cada tarjeta
+    document.querySelectorAll('.card').forEach(card => {
+      const posterUrl = card.getAttribute('data-poster');
+      const poster = card.querySelector('.poster');
+      if (posterUrl) poster.style.backgroundImage = `url('${posterUrl}')`;
+    });
+
+    const lightbox = document.getElementById('lightbox');
+    const iframe = document.getElementById('player');
+
+    function openVideo(youtubeId, title) {
+      const src = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0`;
+      iframe.src = src; iframe.title = title || 'Reproductor YouTube';
+      lightbox.hidden = false;
+    }
+    function closeVideo() { lightbox.hidden = true; iframe.src = ''; }
+
+    document.addEventListener('click', (e) => {
+      const thumbBtn = e.target.closest('.thumb');
+      if (thumbBtn) {
+        const card = thumbBtn.closest('.card');
+        openVideo(card.getAttribute('data-youtube-id'), card.getAttribute('data-title'));
+      }
+      if (e.target.matches('[data-close]')) closeVideo();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !lightbox.hidden) closeVideo(); });
+  </script>
+</body>
+</html>
