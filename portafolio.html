@@ -12,8 +12,8 @@
       --maxw: 1400px;
       --gap: 2rem;
       --radius: 24px;
-      --poster: url('https://raw.githubusercontent.com/mazofilms/Mazofilms.github.io/refs/heads/main/Untitled_1.11.1.jpg');
     }
+
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -21,23 +21,48 @@
       color: var(--fg);
       background: var(--bg);
     }
+
     .wrap { max-width: var(--maxw); margin: 0 auto; padding: 40px 16px; }
     .brand { display: grid; place-items: center; margin-bottom: 40px; }
     .brand img { width: 262px; height: auto; display: block; }
 
+    /* Cuatro portadas por fila */
     .gallery {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: var(--gap);
     }
+
     .card { display: flex; flex-direction: column; align-items: center; text-align: center; }
 
-    .thumb { position: relative; width: 100%; border: 0; padding: 0; cursor: pointer; background: none; }
-    .thumb .poster { display: block; width: 100%; aspect-ratio: 16/9; border-radius: var(--radius); background-image: var(--poster); background-size: cover; background-position: center; }
+    .thumb {
+      position: relative;
+      width: 100%;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      background: none;
+    }
 
-    .meta { margin-top: 14px; font-size: 14px; line-height: 1.4; letter-spacing: .02em; }
+    /* Imagen de portada personalizada */
+    .thumb .poster {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16/9;
+      border-radius: var(--radius);
+      background-size: cover;
+      background-position: center;
+    }
+
+    .meta {
+      margin-top: 14px;
+      font-size: 14px;
+      line-height: 1.4;
+      letter-spacing: .02em;
+    }
     .meta .upper { text-transform: uppercase; font-weight: 700; }
 
+    /* Lightbox */
     #lightbox[hidden] { display: none; }
     #lightbox {
       position: fixed; inset: 0; z-index: 9999;
@@ -55,8 +80,10 @@
     }
     #lightbox iframe { width: 100%; aspect-ratio: 16/9; border: 0; }
     #lightbox .close {
-      position: absolute; top: 8px; right: 12px; border: none; background: rgba(0,0,0,0.5);
-      color: #fff; font-size: 24px; cursor: pointer; border-radius: 50%; width: 36px; height: 36px;
+      position: absolute; top: 8px; right: 12px;
+      border: none; background: rgba(0,0,0,0.5);
+      color: #fff; font-size: 24px; cursor: pointer;
+      border-radius: 50%; width: 36px; height: 36px;
       display: flex; align-items: center; justify-content: center;
       transition: background 0.2s ease;
     }
@@ -77,39 +104,56 @@
     </header>
 
     <section class="gallery" aria-label="Portafolio de videos">
-      <!-- 16 tarjetas con título genérico y video de YouTube -->
-      ${Array.from({ length: 16 }, (_, i) => `
-      <div class="card" data-youtube-id="c_5_gkk2H7s" data-title="Proyecto / Pieza ${i + 1}">
-        <button class="thumb" aria-label="Reproducir: Proyecto / Pieza ${i + 1}">
-          <span class="poster" aria-hidden="true"></span>
+
+      <!-- 🔽 TARJETA DE VIDEO 1 🔽 -->
+      <!-- Cambia el enlace de video, el título y el póster -->
+      <div class="card"
+           data-youtube-id="c_5_gkk2H7s"  <!-- 🔹 Cambia este ID de YouTube -->
+           data-title="Proyecto / Pieza 1">
+        <button class="thumb" aria-label="Reproducir: Proyecto / Pieza 1">
+          <span class="poster"
+                style="background-image: url('https://raw.githubusercontent.com/mazofilms/Mazofilms.github.io/refs/heads/main/Untitled_1.11.1.jpg');"  <!-- 🔹 Cambia aquí la imagen de portada -->
+                aria-hidden="true"></span>
         </button>
         <div class="meta">
-          <div class="upper">QUINQUI</div>
+          <div class="upper">QUINQUI</div> <!-- 🔹 Cambia aquí el título -->
         </div>
-      </div>`).join('\n')}
+      </div>
+
+      <!-- 🔽 TARJETA DE VIDEO 2 🔽 -->
+      <div class="card"
+           data-youtube-id="NhdQkThFQCg"  <!-- Cambia este ID -->
+           data-title="Proyecto / Pieza 2">
+        <button class="thumb" aria-label="Reproducir: Proyecto / Pieza 2">
+          <span class="poster"
+                style="background-image: url('https://github.com/mazofilms/Mazofilms.github.io/blob/main/imagenes/Cortometraje%20-%20El%20Mejor%20Burdel%20de%20Teruel.00_03_45_06.Imagen%20fija001.png?raw=true');"  <!-- Cambia esta imagen -->
+                aria-hidden="true"></span>
+        </button>
+        <div class="meta">
+          <div class="upper">EL MEJOR BURDEL DE TERUEL</div> <!-- Cambia aquí el título -->
+        </div>
+      </div>
+
+      <!-- 🔽 Copia y pega el bloque anterior para más videos 🔽 -->
+      <!-- Asegúrate de cambiar: -->
+      <!-- data-youtube-id="XXXXXXXXXXX" -->
+      <!-- style=\"background-image: url('https://...')" -->
+      <!-- <div class=\"upper\">TÍTULO</div> -->
+
     </section>
   </div>
 
+  <!-- Ventana emergente -->
   <div id="lightbox" hidden>
     <div class="backdrop" data-close></div>
     <div class="player-wrap">
       <button class="close" aria-label="Cerrar" data-close>&times;</button>
-      <iframe id="player" title="Reproductor YouTube" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      <iframe id="player" title="Reproductor YouTube"
+              allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
     </div>
   </div>
 
   <script>
-    const gallery = document.querySelector('.gallery');
-    gallery.innerHTML = `${Array.from({ length: 16 }, (_, i) => `
-      <div class='card' data-youtube-id='c_5_gkk2H7s' data-title='Proyecto / Pieza ${i + 1}'>
-        <button class='thumb' aria-label='Reproducir: Proyecto / Pieza ${i + 1}'>
-          <span class='poster' aria-hidden='true'></span>
-        </button>
-        <div class='meta'>
-          <div class='upper'>QUINQUI</div>
-        </div>
-      </div>`).join('')}`;
-
     const lightbox = document.getElementById('lightbox');
     const iframe = document.getElementById('player');
 
