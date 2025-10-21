@@ -1,35 +1,53 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <!-- Cargar Roboto Mono desde Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mazo Films – Portafolio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet" />
   <style>
-    body {
-      font-family: 'Roboto Mono', monospace;
-      color: black;
+    :root {
+      --fg: #000; --bg: #fff; --maxw: 1400px; --gap: 2rem; --radius: 24px;
     }
-    a {
-      color: black;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Roboto Mono', monospace; color: black; background: var(--bg); }
+    a { color: black; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 40px 16px; }
+    .brand { display: grid; place-items: center; margin-bottom: 40px; }
+    .brand img { width: 262px; height: auto; display: block; }
+
+    /* Cuatro portadas por fila */
+    .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--gap); }
+    .card { display: flex; flex-direction: column; align-items: center; text-align: center; }
+
+    .thumb { position: relative; width: 100%; border: 0; padding: 0; cursor: pointer; background: none; }
+    .thumb .poster { display: block; width: 100%; aspect-ratio: 16/9; border-radius: var(--radius); background-size: cover; background-position: center; }
+
+    .meta { margin-top: 14px; font-size: 14px; line-height: 1.4; letter-spacing: .02em; }
+    .meta .upper { text-transform: uppercase; font-weight: 700; }
+
+    /* Lightbox */
+    #lightbox[hidden] { display: none; }
+    #lightbox { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; }
+    #lightbox .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.7); }
+    #lightbox .player-wrap { position: relative; width: min(90vw, 960px); background: #000; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.6); overflow: hidden; animation: fadeIn .3s ease; }
+    #lightbox iframe { width: 100%; aspect-ratio: 16/9; border: 0; }
+    #lightbox .close { position: absolute; top: 8px; right: 12px; border: none; background: rgba(0,0,0,0.5); color: #fff; font-size: 24px; cursor: pointer; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; transition: background 0.2s ease; }
+    #lightbox .close:hover { background: rgba(0,0,0,0.8); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
   </style>
 </head>
 <body>
-  <p style="text-align: center;">
-  <p>&nbsp;</p>
-    <img style="display: block; margin-left: auto; margin-right: auto;" src="https://i.ibb.co/dwKM5X6x/Mazo-Mano.png" alt="Mazo Films" width="262"/>
-  </p>
-  <p style="text-align: center;">
-  <img src="https://s14.gifyu.com/images/bNSJF.gif" alt="GIF Mazo Films" width="262">
-</p>
+  <div class="wrap">
+    <header class="brand">
+      <a href="https://mazofilms.github.io/index" aria-label="Inicio">
+        <img src="https://i.ibb.co/dwKM5X6x/Mazo-Mano.png" alt="Mazo Films" />
+      </a>
+    </header>
   <p style="text-align: center;"><a href="https://mazofilms.github.io/somos">Quienes somos</a></p>
-  <p style="text-align: center;"><a href="https://mazofilms.github.io/proyectos">Proyectos</a></p>
+  <p style="text-align: center;"><a href="https://mazofilms.github.io/portafolio">Portafolio</a></p>
   <p style="text-align: center;"><a href="https://mazofilms.github.io/contacto">Contacto</a></p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
 </body>
 </html>
