@@ -86,6 +86,16 @@
     .brand a{letter-spacing:.02em}
     .nav{display:flex;align-items:center;gap:var(--gap)}
 
+    /* Más separación entre enlaces en escritorio */
+    @media (min-width:861px){
+      .nav-links a {
+        margin-left: 40px;
+      }
+      .nav-links a:first-child {
+        margin-left: 0;
+      }
+    }
+
     /* ===== Menú móvil ===== */
     .menu-btn{
       display:none;
@@ -114,7 +124,7 @@
         padding:12px;border-radius:12px;
         backdrop-filter:blur(6px);
       }
-      .nav-links a{padding:8px 10px;border-radius:8px}
+      .nav-links a{padding:8px 10px;border-radius:8px;margin-left:0 !important;}
       .nav.open .nav-links{display:flex}
     }
 
@@ -128,8 +138,8 @@
     }
     .content img{
       width:var(--logo-w);height:auto;
-      filter:drop-shadow(0 0 20px rgba(0,0,0,0.6));
       pointer-events:none;user-select:none;cursor:default;transition:none;
+      filter:none; /* sin sombra */
     }
   </style>
 </head>
@@ -203,6 +213,4 @@
   </script>
 </body>
 </html>
-
-
 
