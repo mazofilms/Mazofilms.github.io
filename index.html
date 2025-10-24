@@ -2,52 +2,227 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mazo Films</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Mazo films</title>
+<link rel="icon" href="https://raw.githubusercontent.com/mazofilms/Mazofilms.github.io/refs/heads/main/imagenes/favicon.ico" type="image/x-icon">  
+  <!-- Fuente Roboto Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400&display=swap" rel="stylesheet">
+
   <style>
-    :root {
-      --fg: #000; --bg: #fff; --maxw: 1400px; --gap: 2rem; --radius: 24px;
+    :root{
+      --fg:#fff;
+      --bg:#000;
+      --padX:clamp(16px,4vw,40px);
+      --padY:clamp(10px,2.5vw,16px);
+      --gap:clamp(12px,3vw,24px);
+      --logo-w:clamp(160px,35vw,300px);
+      --font:'Roboto Mono', monospace;
     }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'Roboto Mono', monospace; color: black; background: var(--bg); }
-    a { color: black; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 40px 16px; }
-    .brand { display: grid; place-items: center; margin-bottom: 40px; }
-    .brand img { width: 262px; height: auto; display: block; }
 
-    /* Cuatro portadas por fila */
-    .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--gap); }
-    .card { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    html{-webkit-text-size-adjust:100%}
+    body{
+      font-family:var(--font);
+      color:var(--fg);
+      background:var(--bg);
+      overflow:hidden;
+      -webkit-tap-highlight-color:transparent;
+      font-weight:400;
+    }
 
-    .thumb { position: relative; width: 100%; border: 0; padding: 0; cursor: pointer; background: none; }
-    .thumb .poster { display: block; width: 100%; aspect-ratio: 16/9; border-radius: var(--radius); background-size: cover; background-position: center; }
+    /* ===== Enlaces ===== */
+    a{
+      color:var(--fg);
+      text-decoration:none;
+      font-size:clamp(14px,2.8vw,16px);
+      font-weight:400;
+      transition:text-decoration-color .2s ease;
+    }
+    a:hover,
+    a:focus-visible{
+      text-decoration:underline;
+    }
 
-    .meta { margin-top: 14px; font-size: 14px; line-height: 1.4; letter-spacing: .02em; }
-    .meta .upper { text-transform: uppercase; font-weight: 700; }
+    /* ===== Fondo de video ===== */
+    .video-background{
+      position:fixed;
+      inset:0;
+      width:100vw;
+      height:100dvh;
+      overflow:hidden;
+      z-index:-1;
+      background:#000;
+    }
+    #bg-video{
+      position:absolute;
+      top:0;left:50%;
+      min-width:100vw;min-height:100dvh;
+      width:auto;height:auto;
+      transform:translateX(-50%);
+      object-fit:contain;
+      object-position: top center;
+      pointer-events:none;
+      background:#000;
+    }
 
-    /* Lightbox */
-    #lightbox[hidden] { display: none; }
-    #lightbox { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; }
-    #lightbox .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.7); }
-    #lightbox .player-wrap { position: relative; width: min(90vw, 960px); background: #000; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.6); overflow: hidden; animation: fadeIn .3s ease; }
-    #lightbox iframe { width: 100%; aspect-ratio: 16/9; border: 0; }
-    #lightbox .close { position: absolute; top: 8px; right: 12px; border: none; background: rgba(0,0,0,0.5); color: #fff; font-size: 24px; cursor: pointer; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; transition: background 0.2s ease; }
-    #lightbox .close:hover { background: rgba(0,0,0,0.8); }
+    @media (prefers-reduced-motion: reduce){
+      #bg-video{display:none}
+      .video-background{
+        background:#000 url("https://github.com/mazofilms/Mazofilms.github.io/blob/main/imagenes/Mazo_logo.png?raw=true")
+        center/contain no-repeat;
+      }
+    }
 
-    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    /* ===== Header ===== */
+    header.brand{
+      position:fixed; inset-inline:0; top:0;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:calc(var(--padY) + env(safe-area-inset-top)) var(--padX) var(--padY);
+      z-index:10;
+      background:none;
+      backdrop-filter:none;
+    }
+    .brand a{letter-spacing:.02em}
+    .nav{display:flex;align-items:center;gap:var(--gap)}
+
+    /* Más separación entre enlaces en escritorio */
+    @media (min-width:861px){
+      .nav-links a {
+        margin-left: 40px;
+      }
+      .nav-links a:first-child {
+        margin-left: 0;
+      }
+    }
+
+    /* ===== Menú móvil ===== */
+    .menu-btn{
+      display:none;
+      width:42px;height:42px;
+      border:none;                /* sin borde */
+      background:transparent;     /* transparente */
+      color:#fff;
+      cursor:pointer;
+    }
+    .menu-btn span{
+      display:block;width:18px;height:2px;margin:0 auto;background:#fff;position:relative;
+    }
+    .menu-btn span::before,.menu-btn span::after{
+      content:"";position:absolute;left:0;right:0;height:2px;background:#fff;
+    }
+    .menu-btn span::before{top:-6px}
+    .menu-btn span::after{top:6px}
+
+    @media (max-width:860px){
+      .menu-btn{display:inline-grid;place-items:center}
+      .nav-links{
+        position:fixed;
+        top:calc(56px + env(safe-area-inset-top));
+        right:var(--padX);
+        display:none;
+        flex-direction:column;
+        gap:10px;
+        background:transparent; /* Sin fondo */
+        border:none;            /* Sin borde */
+        padding:0;
+        backdrop-filter:none;   /* Sin desenfoque */
+      }
+      .nav-links a{
+        padding:8px 10px;
+        border-radius:8px;
+        margin-left:0 !important;
+      }
+      .nav.open .nav-links{display:flex}
+    }
+
+    /* ===== Contenido central ===== */
+    .content{
+      position:fixed;inset:0;
+      height:100dvh;width:100vw;
+      display:grid;place-items:center;
+      text-align:center;z-index:1;
+      padding:env(safe-area-inset-top) var(--padX) env(safe-area-inset-bottom);
+    }
+    .content img{
+      width:var(--logo-w);
+      height:auto;
+      pointer-events:none;
+      user-select:none;
+      cursor:default;
+      transition:none;
+      filter:none; /* sin sombra */
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header class="brand">
-      <a href="https://mazofilms.github.io/index" aria-label="Inicio">
-        <img src="https://i.ibb.co/dwKM5X6x/Mazo-Mano.png" alt="Mazo Films" />
-      </a>
-    </header>
-  <p style="text-align: center;"><a href="https://mazofilms.github.io/somos">Quienes somos</a></p>
-  <p style="text-align: center;"><a href="https://mazofilms.github.io/portafolio">Portafolio</a></p>
-  <p style="text-align: center;"><a href="https://mazofilms.github.io/contacto">Contacto</a></p>
+
+  <header class="brand">
+    <nav class="brand-left">
+      <a href="https://mazofilms.github.io/index" aria-label="Inicio">MAZO</a>
+    </nav>
+
+    <nav class="nav" id="nav">
+      <button class="menu-btn" id="menuBtn" aria-label="Abrir menú" aria-expanded="false">
+        <span></span>
+      </button>
+      <div class="nav-links" id="navLinks" role="menu">
+        <a href="https://mazofilms.github.io/somos" role="menuitem">Quienes somos</a>
+        <a href="https://mazofilms.github.io/portafolio" role="menuitem">Portafolio</a>
+        <a href="https://mazofilms.github.io/contacto" role="menuitem">Contacto</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Video de fondo -->
+  <div class="video-background">
+    <video
+      id="bg-video"
+      autoplay muted loop playsinline preload="metadata"
+      controlslist="nodownload noplaybackrate nofullscreen"
+      disablepictureinpicture
+      poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+    >
+      <source src="https://www.dropbox.com/scl/fi/7ep9lhnpli3l8704v1tmv/Reel_Mazo.mp4?rlkey=t78crazy2x7zyeta1cxnqycph&st=d0m3837o&raw=1" type="video/mp4" />
+    </video>
+  </div>
+
+  <!-- Contenido -->
+  <div class="content">
+    <img
+      src="https://github.com/mazofilms/Mazofilms.github.io/blob/main/imagenes/Mazo_logo.png?raw=true"
+      alt="Mazo Films"
+      width="600" height="200"
+      decoding="async"
+      fetchpriority="high"
+    />
+  </div>
+
+  <script>
+    (function(){
+      const btn=document.getElementById('menuBtn');
+      const nav=document.getElementById('nav');
+      const links=document.getElementById('navLinks');
+      btn.addEventListener('click',()=>{
+        const open=nav.classList.toggle('open');
+        btn.setAttribute('aria-expanded',open?'true':'false');
+      });
+      links.addEventListener('click',e=>{
+        if(e.target.tagName==='A'){
+          nav.classList.remove('open');
+          btn.setAttribute('aria-expanded','false');
+        }
+      });
+      try{
+        const c=navigator.connection||navigator.webkitConnection;
+        if(c&&c.saveData){
+          const v=document.getElementById('bg-video');
+          v.parentElement.style.background='#000';
+          v.remove();
+        }
+      }catch(e){}
+    })();
+  </script>
 </body>
 </html>
