@@ -4,7 +4,7 @@
 
 .authbar{position:fixed;right:16px;top:16px;z-index:101;display:flex;gap:8px;align-items:center;font:12px "Roboto Mono",monospace}.authbar button,.authbox button{font:inherit;padding:9px 11px;border:1px solid #d1d1d1;background:#fff;cursor:pointer;border-radius:0}.authbar span{background:#fff;padding:9px 10px}.authscreen{position:fixed;inset:0;z-index:200;background:#f8f9fa;display:flex;align-items:center;justify-content:center}.authbox{width:min(420px,calc(100% - 36px));padding:32px;background:#f5f1e9;display:flex;flex-direction:column;gap:12px;font:14px "Roboto Mono",monospace}.authbox h2{font-size:20px;margin:0 0 8px}.authbox input{padding:12px;border:1px solid #bdb8ad;background:white;border-radius:0;font:inherit;min-width:0}.authbox p{line-height:1.6;font-size:12px;margin:0}.authbox .error{color:#9f2525;min-height:18px}.authbox .login-actions{display:flex;gap:8px;flex-wrap:wrap}.authbox button{flex:1}.authbox .hint{color:#555}body.login-required .board,body.login-required .tools{visibility:hidden}@media(max-width:650px){.authbar{top:12px;right:8px}.authbar span{display:none}}
 [hidden]{display:none!important}@media(max-width:650px){.authbar{top:auto;bottom:8px;left:8px;right:8px;flex-wrap:wrap;font-size:10px}.authbar span{display:block;width:100%;padding:5px}.authbar button{padding:7px}.board{padding-bottom:110px}}
-</style></head><body><div class="tools"><button id="create">＋ Nueva nota</button></div><div class="authbar" id="authbar"><span id="account" role="status" aria-live="polite">Sin conectar</span><button id="connect" type="button" disabled>Conectar Drive</button><button id="import" type="button" hidden>Importar</button><button id="export" type="button" hidden>Exportar</button><button id="logout" type="button" hidden>Salir</button></div><section class="authscreen" id="authscreen"><div class="authbox"><h2>Mis notas</h2><p>Conecta tu cuenta de Google para guardar y sincronizar tus notas en Drive.</p><button id="loginDrive" type="button" disabled>Conectar Google Drive</button><p id="autherror" class="error" role="status">Cargando acceso a Google…</p><p class="hint">Tus notas se guardan en tu Drive. Usa la misma cuenta en todos tus dispositivos.</p></div></section><input type="file" id="importFile" accept=".json,application/json" hidden><main class="board" id="board"><div id="content"></div></main>
+</style></head><body><div class="tools"><button id="create">＋ Nueva nota</button></div><div class="authbar" id="authbar"><span id="account" role="status" aria-live="polite">Sin conectar</span><button id="logout" type="button" hidden>Salir</button></div><section class="authscreen" id="authscreen"><div class="authbox"><h2>Mis notas</h2><p>Conecta tu cuenta de Google para guardar y sincronizar tus notas en Drive.</p><button id="loginDrive" type="button" disabled>Conectar Google Drive</button><p id="autherror" class="error" role="status">Cargando acceso a Google…</p><p class="hint">Tus notas se guardan en tu Drive. Usa la misma cuenta en todos tus dispositivos.</p></div></section><main class="board" id="board"><div id="content"></div></main>
 <script>
 let cloud={ready:false};
 (()=>{'use strict';const KEY=()=>window.notesStorageKey||'mazo-notas-v2-sin-cuenta',colors=['#f5f1e9','#e3c896','#fff3bd','#fbd5d5','#d9f1dc','#d6e8ff','#eadcff','#ffe4cb','#d8f3f1'];const $=id=>document.getElementById(id);const GRID_X=270,GRID_Y=220,BASE_X=20,BASE_Y=80;const snapX=x=>BASE_X+Math.max(0,Math.round((x-BASE_X)/GRID_X))*GRID_X,snapY=y=>BASE_Y+Math.max(0,Math.round((y-BASE_Y)/GRID_Y))*GRID_Y;let notes=[],maxZ=1,pending=null,drag=null,suppressClick=false,saveTimer=null,cloudWriteTimer=null,queuedRemote=null;
@@ -93,7 +93,16 @@ const SCOPE='https://www.googleapis.com/auth/drive.file';
 const API='https://www.googleapis.com/drive/v3';
 const APP='mazofilms-notas-v2';
 const status=document.getElementById('account'), screen=document.getElementById('authscreen');
-const connect=document.getElementById('connect'), login=document.getElementById('loginDrive');
+const login=document.getElementById('loginDrive');
+const SESSION='mazo-notas-google-session-v1';
+function forgetSession(){try{sessionStorage.removeItem(SESSION)}catch(e){}}
+function readSession(){
+ try{const saved=JSON.parse(sessionStorage.getItem(SESSION)||'null');
+ if(saved&&typeof saved.access_token==='string'&&saved.client===CLIENT_ID&&Number(saved.expires)>Date.now()&&saved.scope?.split(' ').includes(SCOPE))return saved;
+ }catch(e){}
+ forgetSession();return null;
+}
+function rememberSession(scope){try{sessionStorage.setItem(SESSION,JSON.stringify({client:CLIENT_ID,access_token:token,expires,scope}))}catch(e){}}
 let client=null,token='',expires=0,userId='',folderId='',busy=false,ready=false,saveTimer=null;
 let events=new Map(),remote=[],base=[],pending=null;
 const copy=x=>JSON.parse(JSON.stringify(x));
@@ -167,7 +176,7 @@ function applyUI(notes){
  }
 }
 function requireConnection(){
- if(!token||Date.now()>expires){token='';showStatus('Sesión caducada · pulsa Conectar Drive');connect.hidden=false;throw Error('Vuelve a conectar Google Drive')}
+ if(!token||Date.now()>expires){token='';forgetSession();showStatus('Sesión caducada · pulsa aquí para conectar');throw Error('Vuelve a conectar Google Drive')}
 }
 async function request(path,options={}){
  requireConnection();
@@ -178,7 +187,7 @@ async function request(path,options={}){
    let message='Error de Google Drive ('+response.status+')';
    try{message=(await response.json()).error?.message||message}catch(e){}
    const error=Error(message);error.status=response.status;
-   if(response.status===401){token='';connect.hidden=false;showStatus('Vuelve a conectar Google Drive')}
+   if(response.status===401){token='';forgetSession();showStatus('Sesión caducada · pulsa aquí para conectar')}
    throw error;
   }
   return response.status===204?{}:response.json();
@@ -260,7 +269,7 @@ async function sync(){
   }
   showStatus('Guardado en Drive');
  }catch(e){
-  showStatus(token?'No se pudo guardar · se reintentará':'Copia local · pulsa Conectar Drive');
+  showStatus(token?'No se pudo guardar · se reintentará':'Copia local · pulsa aquí para conectar');
   console.warn(e.message);
  }finally{
   busy=false;
@@ -270,7 +279,7 @@ async function sync(){
 async function authorize(response){
  if(response.error){document.getElementById('autherror').textContent='Google no autorizó el acceso';return}
  if(!google.accounts.oauth2.hasGrantedAllScopes(response,SCOPE)){document.getElementById('autherror').textContent='Debes autorizar el acceso a los archivos de la web';return}
- token=response.access_token;expires=Date.now()+Math.max(0,Number(response.expires_in||3600)-60)*1000;
+ token=response.access_token;expires=response.cachedExpires||Date.now()+Math.max(0,Number(response.expires_in||3600)-60)*1000;
  if(busy)return;
  busy=true;
  try{
@@ -289,41 +298,28 @@ async function authorize(response){
   // Recover an upload interrupted before its acknowledgement.
   if(pending)await uploadPending();
   const edits=diff(base,current());base=copy(remote);applyUI(apply(remote,edits));cache();
-  ready=true;screen.hidden=true;connect.textContent='Reconectar';
-  document.getElementById('import').hidden=false;document.getElementById('export').hidden=false;document.getElementById('logout').hidden=false;
+  ready=true;screen.hidden=true;rememberSession(response.scope||SCOPE);
+  document.getElementById('logout').hidden=false;
   showStatus('Guardado en Drive');
  }catch(e){showStatus('No se pudo conectar');document.getElementById('autherror').textContent=e.message}
  finally{busy=false;if(ready&&(pending||diff(base,current()).length))window.queueDriveSave()}
 }
 window.gisLoaded=()=>{
  client=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,include_granted_scopes:false,callback:authorize,error_callback:e=>{document.getElementById('autherror').textContent=e.type==='popup_closed'?'Se ha cerrado el acceso a Google':'Permite las ventanas emergentes para conectar';}});
- connect.disabled=false;login.disabled=false;document.getElementById('autherror').textContent='';
+ login.disabled=false;document.getElementById('autherror').textContent='';
+ const saved=readSession();
+ if(saved){document.getElementById('autherror').textContent='Recuperando tu sesión…';authorize({access_token:saved.access_token,scope:saved.scope,cachedExpires:saved.expires});}
 };
 function connectDrive(){if(busy)return;client?.requestAccessToken({prompt:userId?'':'select_account'})}
-connect.onclick=connectDrive;login.onclick=connectDrive;
+login.onclick=connectDrive;
+status.onclick=()=>{if(!token){screen.hidden=false;document.getElementById('autherror').textContent='Conecta Google para continuar guardando en Drive';}};
 document.getElementById('logout').onclick=()=>{
  if(busy){alert('Espera a que termine el guardado');return}
  if((pending||diff(base,current()).length)&&!confirm('Quedan cambios sin guardar en Drive. Se conservarán localmente para esta cuenta. ¿Salir?'))return;
- cache();token='';expires=0;ready=false;userId='';events=new Map();remote=[];base=[];pending=null;
+ cache();forgetSession();token='';expires=0;ready=false;userId='';events=new Map();remote=[];base=[];pending=null;
  window.notesStorageKey='mazo-notas-v2-sin-cuenta';applyUI([]);screen.hidden=false;
- for(const id of ['import','export','logout'])document.getElementById(id).hidden=true;
- showStatus('Sin conectar');connect.textContent='Conectar Drive';
-};
-document.getElementById('import').onclick=()=>document.getElementById('importFile').click();
-document.getElementById('importFile').onchange=async e=>{
- const file=e.target.files[0];if(!file)return;
- try{
-  if(file.size>4000000)throw Error('El archivo supera 4 MB');
-  const parsed=JSON.parse(await file.text()), imported=validNotes(Array.isArray(parsed)?parsed:parsed.notes);
-  const existing=current(),map=new Map(existing.map(n=>[n.id,n]));
-  for(const n of imported){if(map.has(n.id)){if(same(map.get(n.id),n))continue;n.id=uid()}map.set(n.id,n)}
-  applyUI([...map.values()]);window.queueDriveSave();
- }catch(err){alert('No se pudo importar: '+err.message)}
- finally{e.target.value=''}
-};
-document.getElementById('export').onclick=()=>{
- const blob=new Blob([JSON.stringify({notes:current()},null,2)],{type:'application/json'});
- const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mis-notas.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ document.getElementById('logout').hidden=true;
+ showStatus('Sin conectar');
 };
 window.addEventListener('online',sync);document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync();else cache()});
 window.addEventListener('pagehide',cache);
