@@ -110,6 +110,7 @@
   }
   let wave = 0;
   let alive = true;
+  let started = false;
   function formatTime(seconds) {
     const tenths = Math.floor(seconds * 10);
     const minutes = Math.floor(tenths / 600);
@@ -163,6 +164,15 @@
   addEventListener('resize', resize);
   addEventListener('keydown', e => {
     if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','Shift'].includes(e.key)) e.preventDefault();
+    if (!started) {
+      if (e.key === 'Enter' && !e.repeat) {
+        e.preventDefault();
+        started = true;
+        pressed.clear();
+        last = performance.now();
+      }
+      return;
+    }
     if (!alive && (e.key === 'Enter' || e.key === 'r' || e.key === 'R')) {
       e.preventDefault();
       alive = true; asteroids.length = 0; explosion.length = 0; asteroidExplosions.length = 0; wave = 0;
@@ -376,6 +386,20 @@
   function frame(now) {
     const dt = Math.min(Math.max(0, (now - last) / 1000), 0.05);
     last = now;
+    if (!started) {
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '64px monospace';
+      ctx.fillText('*', innerWidth / 2, innerHeight / 2 - 105);
+      ctx.font = '32px monospace';
+      ctx.fillText('ASTERISK', innerWidth / 2, innerHeight / 2 - 30);
+      ctx.font = '18px monospace';
+      ctx.fillText('Enter para jugar', innerWidth / 2, innerHeight / 2 + 22);
+      requestAnimationFrame(frame);
+      return;
+    }
     update(dt);
     ctx.clearRect(0, 0, innerWidth, innerHeight);
     ctx.fillStyle = '#fff';
