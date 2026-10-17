@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASTERISK</title>
+<style>
+  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#000; }
+  canvas { display:block; width:100%; height:100%; background:#000; }
+  body { color:#fff; font-family:monospace; }
+</style>
+</head>
+<body>
+<canvas tabindex="-1" id="game" aria-label="Nave tipográfica controlada con flechas"></canvas>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const pressed = new Set();
+  const ship = { x:0, y:0, a:0, vx:0, vy:0 };
+  const TURN = 3.2;           // radianes por segundo
+  const THRUST = 440;         // píxeles por segundo cuadrado
+  const DRAG = 0.985;         // rozamiento por fotograma (60 fps)
+  const MAX_SPEED = 420;
+  const FONT_SIZE = 28;
+  const asteroids = [];
+  const enemies = [];
+  const enemyBullets = [];
+  const playerBullets = [];
+  const pickups = [];
+  const effects = {shot:0, shield:0, turbo:0};
+  const symbols = {shot:'-', shield:'o', turbo:'>>'};
+  let pickupTimer = 12;
+  let nextPickup = 0;
+  let fireCooldown = 0;
+  function edgeEntry(speed) {
+    const side = Math.floor(Math.random()*4);
+    const halfW=innerWidth/2, halfH=innerHeight/2, margin=60;
+    let x, y;
+    if(side<2) { x=ship.x+(side===0 ? -halfW-margin : halfW+margin); y=ship.y+(Math.random()-.5)*innerHeight; }
+    else { x=ship.x+(Math.random()-.5)*innerWidth; y=ship.y+(side===2 ? -halfH-margin : halfH+margin); }
+    const targetX=ship.x+(Math.random()-.5)*innerWidth*.5;
+    const targetY=ship.y+(Math.random()-.5)*innerHeight*.5;
+    const a=Math.atan2(targetY-y,targetX-x);
+    return {x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed};
+  }
+  function spawnPickup(type) {
+    if (pickups.length >= 6) return;
+    for (let tries=0; tries<80; tries++) {
+      const {x,y,vx,vy}=edgeEntry(65);
+      if (asteroids.some(a=>Math.hypot(a.x-x,a.y-y)<LEVELS[a.value].radius+38) ||
+          enemies.some(e=>e.alive && Math.hypot(e.x-x,e.y-y)<60) ||
+          pickups.some(p=>Math.hypot(p.x-x,p.y-y)<45)) continue;
+      pickups.push({type,x,y,vx,vy,life:45});
+      return;
+    }
+  }
+  function resetPickups() {
+    pickups.length=0; playerBullets.length=0;
+    effects.shot=effects.shield=effects.turbo=0;
+    pickupTimer=12; nextPickup=0; fireCooldown=0;
+    for (const type of ['shot','shield','turbo']) spawnPickup(type);
+  }
+  const REINFORCEMENT_INTERVAL = 20;
+  const MIN_REINFORCEMENT_INTERVAL = 3;
+  let reinforcementInterval = REINFORCEMENT_INTERVAL;
+  let elapsed = 0;
+  let nextReinforcement = REINFORCEMENT_INTERVAL;
+  function spawnEnemy(enemy) {
+    if (!enemy) {
+      enemy = {x:0,y:0,a:0,vx:0,vy:0,alive:true,respawnTimer:0,fireTimer:.75};
+      enemies.push(enemy);
+    }
+    Object.assign(enemy,edgeEntry(160));
+    for(let tries=0; tries<40 && (asteroids.some(a=>Math.hypot(a.x-enemy.x,a.y-enemy.y)<LEVELS[a.value].radius+35) || enemies.some(e=>e!==enemy && e.alive && Math.hypot(e.x-enemy.x,e.y-enemy.y)<45));tries++) {
+      Object.assign(enemy,edgeEntry(160));
+    }
+    enemy.a = Math.atan2(ship.y-enemy.y, ship.x-enemy.x);
+    enemy.fireTimer = .75 + Math.random() * .35;
+    enemy.alive = true;
+    enemy.respawnTimer = 0;
+  }
+  function hitShip() {
+    if (!alive) return;
+    if (effects.shield > 0) {
+      effects.shield = 0;
+      explodeAsteroid(ship.x, ship.y);
+      return;
+    }
+    alive = false;
+    explode(ship.x, ship.y);
+    pressed.clear();
+  }
+  const LEVELS = {8: {font: 32, radius: 15}, 4: {font: 26, radius: 12}, 2: {font: 20, radius: 9}, 1: {font: 15, radius: 7}};
+  const explosion = [];
+  const asteroidExplosions = [];
+  function explodeAsteroid(x, y) {
+    for (let i = 0; i < 8; i++) {
+      const angle = i * Math.PI / 4;
+      asteroidExplosions.push({x, y, vx: Math.cos(angle) * 125, vy: Math.sin(angle) * 125, angle, life: EXPLOSION_DURATION});
+    }
+  }
+  const EXPLOSION_DURATION = 0.85;
+  function explode(x, y) {
+    explosion.length = 0;
+    for (let i = 0; i < 8; i++) {
+      const angle = i * Math.PI / 4;
+      explosion.push({x, y, vx: Math.cos(angle) * 125, vy: Math.sin(angle) * 125, angle, life: EXPLOSION_DURATION});
+    }
+  }
+  let wave = 0;
+  let alive = true;
+  function formatTime(seconds) {
+    const tenths = Math.floor(seconds * 10);
+    const minutes = Math.floor(tenths / 600);
+    const secs = Math.floor(tenths / 10) % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${tenths % 10}`;
+  }
+
+  function addAsteroid(value, x, y, vx, vy) {
+    asteroids.push({value, x, y, vx, vy});
+  }
+  function hitAsteroid(bullet) {
+    const index = asteroids.findIndex(a => Math.hypot(a.x-bullet.x,a.y-bullet.y) < LEVELS[a.value].radius+4);
+    if (index < 0) return false;
+    const a = asteroids.splice(index,1)[0];
+    explodeAsteroid(a.x,a.y);
+    // Tres tamaños: grande → dos medianos → cuatro pequeños.
+    if (a.value > 1) {
+      const smaller = a.value === 8 ? 4 : 1;
+      const base = Math.atan2(bullet.vy,bullet.vx) + Math.PI/2;
+      const offset = LEVELS[smaller].radius + 3;
+      for (const side of [-1,1]) {
+        const dx = Math.cos(base)*side, dy = Math.sin(base)*side;
+        addAsteroid(smaller,a.x+dx*offset,a.y+dy*offset,a.vx+dx*45,a.vy+dy*45);
+      }
+    }
+    return true;
+  }
+  function spawnWave() {
+    wave++;
+    for (let i = 0; i < Math.min(16 + wave * 4, 32); i++) {
+      const entry=edgeEntry(35+Math.random()*55);
+      addAsteroid(8,entry.x,entry.y,entry.vx,entry.vy);
+    }
+  }
+  let last = performance.now();
+  let initialized = false;
+
+  function resize() {
+    const ratio = Math.min(devicePixelRatio || 1, 2);
+    canvas.width = Math.round(innerWidth * ratio);
+    canvas.height = Math.round(innerHeight * ratio);
+    canvas.style.width = innerWidth + 'px';
+    canvas.style.height = innerHeight + 'px';
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    if (!initialized) {
+      ship.x = 0;
+      ship.y = 0;
+      initialized = true;
+    }
+  }
+  addEventListener('resize', resize);
+  addEventListener('keydown', e => {
+    if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','Shift'].includes(e.key)) e.preventDefault();
+    if (!alive && (e.key === 'Enter' || e.key === 'r' || e.key === 'R')) {
+      e.preventDefault();
+      alive = true; asteroids.length = 0; explosion.length = 0; asteroidExplosions.length = 0; wave = 0;
+      ship.x = 0; ship.y = 0;
+      ship.a = 0; ship.vx = 0; ship.vy = 0;
+      elapsed = 0; reinforcementInterval = REINFORCEMENT_INTERVAL; nextReinforcement = REINFORCEMENT_INTERVAL; enemies.length = 0; enemyBullets.length = 0;
+      pressed.clear(); spawnWave(); spawnEnemy(); resetPickups();
+    }
+    pressed.add(e.key);
+  });
+  addEventListener('keyup', e => pressed.delete(e.key));
+  addEventListener('blur', () => pressed.clear());
+  resize();
+  spawnWave();
+  spawnEnemy();
+  resetPickups();
+
+  function update(dt) {
+    if (alive) {
+      elapsed += dt;
+      while (elapsed >= nextReinforcement) {
+        spawnEnemy();
+        reinforcementInterval = Math.max(MIN_REINFORCEMENT_INTERVAL, reinforcementInterval * .9);
+        nextReinforcement += reinforcementInterval;
+      }
+    }
+    if (alive) {
+      for (const key of Object.keys(effects)) effects[key]=Math.max(0,effects[key]-dt);
+      pickupTimer-=dt;
+      if (pickupTimer<=0) {
+        spawnPickup(['shot','shield','turbo'][nextPickup]);
+        nextPickup=(nextPickup+1)%3; pickupTimer+=12;
+      }
+      for (let i=pickups.length-1;i>=0;i--) {
+        const p=pickups[i]; p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
+        if (p.life<=0) {pickups.splice(i,1);continue;}
+      }
+    }
+    const turboActive = alive && effects.turbo > 0;
+    const thrust = THRUST * (turboActive ? 1.5 : 1);
+    const maxSpeed = MAX_SPEED * (turboActive ? 1.5 : 1);
+    // Izquierda y derecha rotan continuamente, sin buscar un ángulo final.
+    if (alive && pressed.has('ArrowLeft')) ship.a -= TURN * dt;
+    if (alive && pressed.has('ArrowRight')) ship.a += TURN * dt;
+    const directionX = Math.cos(ship.a), directionY = Math.sin(ship.a);
+    if (alive && (pressed.has('ArrowUp') || turboActive)) {
+      ship.vx += directionX * thrust * dt;
+      ship.vy += directionY * thrust * dt;
+    }
+    if (alive && pressed.has('ArrowDown')) {
+      ship.vx -= directionX * thrust * 0.6 * dt;
+      ship.vy -= directionY * thrust * 0.6 * dt;
+    }
+    for (const p of [...explosion, ...asteroidExplosions]) {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt;
+    }
+    for (const group of [explosion, asteroidExplosions]) {
+      for (let i = group.length - 1; i >= 0; i--) {
+        if (group[i].life <= 0) group.splice(i, 1);
+      }
+    }
+    // Desplazamiento continuo de los asteroides tipográficos.
+    for (const a of asteroids) {
+      a.x += a.vx * dt;
+      a.y += a.vy * dt;
+      // Solo se reubican cuando ya están completamente fuera de la vista.
+      if (Math.abs(a.x-ship.x)>innerWidth/2+160 || Math.abs(a.y-ship.y)>innerHeight/2+160) {
+        Object.assign(a,edgeEntry(Math.max(35,Math.hypot(a.vx,a.vy))));
+      }
+    }
+    for (const enemy of enemies) {
+    // El perseguidor mantiene el rumbo hacia el jugador, sin esquivar asteroides.
+    if (alive && enemy.alive) {
+      const target = Math.atan2(ship.y - enemy.y, ship.x - enemy.x);
+      const delta = Math.atan2(Math.sin(target - enemy.a), Math.cos(target - enemy.a));
+      enemy.a += Math.max(-2.1 * dt, Math.min(2.1 * dt, delta));
+      const distance = Math.hypot(ship.x - enemy.x, ship.y - enemy.y);
+      if (distance > 0) {
+        enemy.vx += Math.cos(enemy.a) * 600 * dt;
+        enemy.vy += Math.sin(enemy.a) * 600 * dt;
+      }
+      const damp = Math.pow(0.98, dt * 60);
+      enemy.vx *= damp; enemy.vy *= damp;
+      const espeed = Math.hypot(enemy.vx, enemy.vy);
+      if (espeed > 390) { enemy.vx *= 390 / espeed; enemy.vy *= 390 / espeed; }
+      enemy.x += enemy.vx * dt; enemy.y += enemy.vy * dt;
+      enemy.fireTimer -= dt;
+      if (distance < 700 && Math.abs(delta) < .35 && enemy.fireTimer <= 0) {
+        enemyBullets.push({x:enemy.x + Math.cos(enemy.a)*18, y:enemy.y + Math.sin(enemy.a)*18,
+          vx:Math.cos(enemy.a)*600, vy:Math.sin(enemy.a)*600});
+        enemy.fireTimer = .9;
+      }
+    } else if (!enemy.alive && alive) {
+      enemy.respawnTimer -= dt;
+      if (enemy.respawnTimer <= 0) spawnEnemy(enemy);
+    }
+    }
+    for (let i = enemyBullets.length - 1; i >= 0; i--) {
+      const b = enemyBullets[i];
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      // Los asteroides sirven también de cobertura frente a los disparos.
+      if (alive && hitAsteroid(b)) {
+        enemyBullets.splice(i,1);
+      }
+    }
+    const drag = Math.pow(DRAG, dt * 60);
+    ship.vx *= drag;
+    ship.vy *= drag;
+    const speed = Math.hypot(ship.vx, ship.vy);
+    if (speed > maxSpeed) {
+      ship.vx *= maxSpeed / speed;
+      ship.vy *= maxSpeed / speed;
+    }
+    if (alive) { ship.x += ship.vx * dt; ship.y += ship.vy * dt; }
+    if (alive) {
+      for (let i=pickups.length-1;i>=0;i--) {
+        const p=pickups[i];
+        if (Math.hypot(ship.x-p.x,ship.y-p.y)<25) { effects[p.type]=10; pickups.splice(i,1); }
+      }
+      fireCooldown=Math.max(0,fireCooldown-dt);
+      if (effects.shot>0 && fireCooldown<=0) {
+        playerBullets.push({x:ship.x+directionX*20,y:ship.y+directionY*20,
+          vx:directionX*850,vy:directionY*850,a:ship.a});
+        fireCooldown=.18;
+      }
+      for (let i=playerBullets.length-1;i>=0;i--) {
+        const b=playerBullets[i];b.x+=b.vx*dt;b.y+=b.vy*dt;
+        if (hitAsteroid(b)) {
+          playerBullets.splice(i,1);continue;
+        }
+        const target=enemies.find(e=>e.alive && Math.hypot(e.x-b.x,e.y-b.y)<18);
+        if(target) {destroyEnemy(target);playerBullets.splice(i,1);}
+      }
+    }
+    // Choque entre la nave y cualquier asteroide: la nave desaparece.
+    if (alive) {
+      for (let i = asteroids.length - 1; i >= 0; i--) {
+        const a = asteroids[i];
+        if (Math.hypot(ship.x - a.x, ship.y - a.y) < LEVELS[a.value].radius + 9) {
+          hitShip();
+          break;
+        }
+      }
+    }
+    if (alive) {
+      for (const enemy of enemies) {
+        if (enemy.alive && Math.hypot(ship.x-enemy.x,ship.y-enemy.y) < 17) hitShip();
+      }
+      for (let i=enemyBullets.length-1; i>=0; i--) {
+        const b=enemyBullets[i];
+        if (Math.hypot(ship.x-b.x,ship.y-b.y) < 11) { enemyBullets.splice(i,1); hitShip(); }
+      }
+    }
+    for (const enemy of enemies) {
+    // Los asteroides destruyen a los perseguidores.
+    if (alive && enemy.alive) {
+      for (const a of asteroids) {
+        if (Math.hypot(enemy.x - a.x, enemy.y - a.y) < LEVELS[a.value].radius + 10) {
+          destroyEnemy(enemy);
+          break;
+        }
+      }
+    }
+    }
+    if (alive) {
+      // Cada pareja se comprueba una sola vez; ambos enemigos se destruyen.
+      const crashed = new Set();
+      for (let i=0; i<enemies.length; i++) {
+        if (!enemies[i].alive) continue;
+        for (let j=i+1; j<enemies.length; j++) {
+          if (enemies[j].alive && Math.hypot(enemies[i].x-enemies[j].x,enemies[i].y-enemies[j].y) < 24) {
+            crashed.add(enemies[i]); crashed.add(enemies[j]);
+          }
+        }
+      }
+      crashed.forEach(destroyEnemy);
+      // Cualquier disparo enemigo puede destruir una nave, incluso la que lo lanzó.
+      for (let i=enemyBullets.length-1; i>=0; i--) {
+        const b=enemyBullets[i];
+        const target=enemies.find(e=>e.alive && Math.hypot(e.x-b.x,e.y-b.y)<14);
+        if (target) { enemyBullets.splice(i,1); destroyEnemy(target); }
+      }
+    }
+  }
+  function destroyEnemy(enemy) {
+    if (!enemy.alive) return;
+    explodeAsteroid(enemy.x, enemy.y);
+    enemy.alive = false;
+    enemy.respawnTimer = 4;
+  }
+  function drawCenteredShip(text) {
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    const compactTurbo = text === '>>';
+    const glyph = compactTurbo ? '>' : text;
+    const bounds = ctx.measureText(glyph) || {};
+    const spacing = compactTurbo ? (bounds.width ?? FONT_SIZE * .6) * .6 : 0;
+    const left = bounds.actualBoundingBoxLeft ?? 0;
+    const right = (bounds.actualBoundingBoxRight ?? bounds.width ?? FONT_SIZE) + spacing;
+    const top = bounds.actualBoundingBoxAscent ?? FONT_SIZE * .7;
+    const bottom = bounds.actualBoundingBoxDescent ?? 0;
+    // Centra los píxeles del carácter, no la caja de línea de la fuente.
+    const x = (left - right) / 2, y = (top - bottom) / 2;
+    ctx.fillText(glyph, x, y);
+    if (compactTurbo) ctx.fillText(glyph, x + spacing, y);
+    ctx.restore();
+  }
+  function frame(now) {
+    const dt = Math.min(Math.max(0, (now - last) / 1000), 0.05);
+    last = now;
+    update(dt);
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    ctx.fillStyle = '#fff';
+    // Cámara: la nave queda centrada y el mundo se mueve en sentido contrario.
+    ctx.save();
+    ctx.translate(innerWidth / 2 - ship.x, innerHeight / 2 - ship.y);
+    ctx.font = '22px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const a of asteroids) {
+      ctx.font = `${LEVELS[a.value].font}px monospace`;
+      ctx.fillText('*', a.x, a.y);
+    }
+    for (const p of pickups) {
+      ctx.save(); ctx.translate(p.x,p.y);
+      ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.setLineDash([3,5]);
+      ctx.beginPath();ctx.arc(0,0,21,0,Math.PI*2);ctx.stroke();
+      ctx.font='23px monospace';drawCenteredShip(symbols[p.type]);ctx.restore();
+    }
+    for (const b of playerBullets) {
+      ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.a);ctx.font='22px monospace';ctx.fillText('-',0,0);ctx.restore();
+    }
+    for (const b of enemyBullets) { ctx.font = "22px monospace"; ctx.fillText("·", b.x, b.y); }
+    for (const enemy of enemies) {
+    if (enemy.alive) {
+      ctx.save();
+      ctx.translate(enemy.x, enemy.y);
+      ctx.rotate(enemy.a);
+      ctx.font = `${FONT_SIZE}px monospace`;
+      drawCenteredShip('>');
+      ctx.restore();
+    }
+    }
+    for (const p of [...explosion, ...asteroidExplosions]) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+      ctx.globalAlpha = Math.min(1, p.life / 0.3);
+      ctx.font = '24px monospace';
+      ctx.fillText('-', 0, 0);
+      ctx.restore();
+    }
+    if (alive && effects.shield>0) {
+      ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.shadowBlur=0;
+      ctx.beginPath();ctx.arc(ship.x,ship.y,25,0,Math.PI*2);ctx.stroke();ctx.restore();
+    }
+    if (alive) {
+      ctx.font = `${FONT_SIZE}px monospace`;
+      ctx.save();
+      ctx.translate(ship.x, ship.y);
+      ctx.rotate(ship.a);
+      drawCenteredShip(effects.turbo>0 ? '>>' : '>');
+      ctx.restore();
+    }
+    ctx.restore();
+    // HUD fijo: no sigue el desplazamiento del mundo.
+    ctx.fillStyle = '#fff';
+    ctx.font = '18px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(formatTime(elapsed), innerWidth / 2, 18);
+    if (!alive) {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '24px monospace';
+      ctx.fillText(formatTime(elapsed), innerWidth / 2, innerHeight / 2 + 70);
+      ctx.font = '16px monospace';
+      ctx.fillText('Enter para reiniciar', innerWidth / 2, innerHeight / 2 + 108);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
+
+
