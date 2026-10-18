@@ -22,6 +22,11 @@
   #touch-controls button[data-key="ArrowRight"] { justify-self:end; }
   #touch-enter { font-size:18px !important; }
   @media (any-pointer:coarse) { #touch-controls { display:grid; } }
+  #record-dialog { background:#000; color:#fff; border:1px solid #fff; font:16px monospace; width:min(320px, 80vw); padding:24px; }
+  #record-dialog::backdrop { background:rgba(0,0,0,.85); }
+  #record-dialog input { box-sizing:border-box; width:100%; margin:16px 0; padding:12px; background:#000; color:#fff; border:1px solid #fff; font:16px monospace; user-select:text; touch-action:manipulation; }
+  #record-dialog button { background:#000; color:#fff; border:1px solid #fff; font:16px monospace; padding:12px; min-height:48px; touch-action:manipulation; }
+  #record-dialog form { display:flex; flex-direction:column; gap:8px; }
 </style>
 </head>
 <body>
@@ -31,11 +36,103 @@
   <button type="button" id="touch-enter" aria-label="Iniciar o reiniciar">ENTER</button>
   <button type="button" data-key="ArrowRight" aria-label="Girar a la derecha">→</button>
 </div>
+<dialog id="record-dialog" aria-labelledby="record-title">
+  <form id="record-form">
+    <strong id="record-title">¡ESTÁS EN EL TOP 3!</strong>
+    <span id="record-time"></span>
+    <div id="record-ranking" style="white-space:pre-line; line-height:1.8"></div>
+    <label for="record-name">Tu nombre</label>
+    <input id="record-name" maxlength="16" required autocomplete="nickname" placeholder="Hasta 16 caracteres">
+    <button type="submit">GUARDAR</button>
+    <button type="button" id="record-skip">OMITIR</button>
+    <span id="record-status" role="status"></span>
+  </form>
+</dialog>
 <script>
 (() => {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const pressed = new Set();
+  const rankingUrl = 'https://jtietanykbnnjezmxyiu.supabase.co/rest/v1/rpc/';
+  const rankingPublicKey = 'sb_publishable_foIRLXRIN6gYf_m6vOq1cw_C6ovBINU';
+  let ranking = [], rankingStatus = 'CARGANDO RANKING…';
+  let checkingRecord = false, savingRecord = false;
+  async function rankingRequest(method, body = {}) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(rankingUrl + method, {
+        method:'POST', headers:{apikey:rankingPublicKey, 'Content-Type':'application/json'},
+        body:JSON.stringify(body), signal:controller.signal
+      });
+      if (!response.ok) throw new Error('No se pudo conectar al ranking');
+      return await response.json();
+    } finally { clearTimeout(timeout); }
+  }
+  async function refreshRanking() {
+    try {
+      ranking = await rankingRequest('asteroisk_top3');
+      rankingStatus = 'TOP 3';
+      return true;
+    } catch (_) { rankingStatus = 'RANKING SIN CONEXIÓN'; return false; }
+  }
+  const recordDialog = document.getElementById('record-dialog');
+  const recordName = document.getElementById('record-name');
+  const recordStatus = document.getElementById('record-status');
+  let pendingRecord = null;
+  function qualifies(time) { return time > 0 && (ranking.length < 3 || time > ranking[2].time); }
+  async function offerRecord() {
+    const time = Math.floor(elapsed * 10);
+    checkingRecord = true;
+    clearControls();
+    await refreshRanking();
+    checkingRecord = false;
+    if (!qualifies(time)) return;
+    pendingRecord = time;
+    recordName.value = '';
+    recordName.setCustomValidity('');
+    recordStatus.textContent = '';
+    document.getElementById('record-skip').textContent = 'OMITIR';
+    document.getElementById('record-time').textContent = formatTime(time / 10);
+    document.getElementById('record-ranking').textContent = rankingStatus + '\n' + Array.from({length:3}, (_,i) => rankingLine(i)).join('\n');
+    recordDialog.showModal();
+    recordName.focus();
+  }
+  function finishRecord() {
+    if (savingRecord) return;
+    pendingRecord = null;
+    recordDialog.close();
+    clearControls();
+    dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', repeat:false}));
+    pressed.clear();
+    started = false;
+    refreshRanking();
+  }
+  document.getElementById('record-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (pendingRecord === null) { finishRecord(); return; }
+    if (savingRecord) return;
+    const name = recordName.value.trim().replace(/\s+/g, ' ').slice(0,16);
+    if (!name) { recordName.setCustomValidity('Escribe tu nombre'); recordName.reportValidity(); return; }
+    savingRecord = true;
+    recordStatus.textContent = 'Guardando…';
+    try {
+      const accepted = await rankingRequest('asteroisk_submit', {player_name:name, score:pendingRecord});
+      pendingRecord = null;
+      await refreshRanking();
+      savingRecord = false;
+      if (accepted) { finishRecord(); return; }
+      recordStatus.textContent = 'Otra marca ha superado tu tiempo. ¡Vuelve a intentarlo!';
+      document.getElementById('record-skip').textContent = 'CONTINUAR';
+    } catch (_) { recordStatus.textContent = 'No se ha confirmado el guardado. Comprueba tu conexión y pulsa GUARDAR para reintentar.'; }
+    finally { savingRecord = false; }
+  });
+  recordName.addEventListener('input', () => recordName.setCustomValidity(''));
+  document.getElementById('record-skip').addEventListener('click', finishRecord);
+  recordDialog.addEventListener('cancel', event => { event.preventDefault(); finishRecord(); });
+  refreshRanking();
+  addEventListener('online', refreshRanking);
+  addEventListener('focus', refreshRanking);
   const mobileView = matchMedia('(any-pointer:coarse)');
   let viewWidth, viewHeight;
   const ship = { x:0, y:0, a:0, vx:0, vy:0 };
@@ -109,6 +206,7 @@
       return;
     }
     alive = false;
+    offerRecord();
     explode(ship.x, ship.y);
     pressed.clear();
   }
@@ -188,6 +286,7 @@
   addEventListener('resize', resize);
   mobileView.addEventListener('change', resize);
   addEventListener('keydown', e => {
+    if (recordDialog.open || checkingRecord) return;
     if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','Shift'].includes(e.key)) e.preventDefault();
     if (!started) {
       if (e.key === 'Enter' && !e.repeat) {
@@ -441,6 +540,15 @@
     if (compactTurbo) ctx.fillText(glyph, x + spacing, y);
     ctx.restore();
   }
+  function rankingLine(i) {
+    const record = ranking[i];
+    return record ? (i+1) + '. ' + record.name + '  ' + formatTime(record.time/10) : (i+1) + '. —';
+  }
+  function drawRanking(y) {
+    ctx.font = '16px monospace';
+    ctx.fillText(rankingStatus, viewWidth / 2, y);
+    for (let i=0; i<3; i++) ctx.fillText(rankingLine(i), viewWidth / 2, y + 32 + i*28);
+  }
   function frame(now) {
     const dt = Math.min(Math.max(0, (now - last) / 1000), 0.05);
     last = now;
@@ -455,6 +563,7 @@
       ctx.fillText('ASTEROISK', viewWidth / 2, viewHeight / 2 - 30);
       ctx.font = '18px monospace';
       ctx.fillText('Enter para jugar', viewWidth / 2, viewHeight / 2 + 22);
+      drawRanking(viewHeight / 2 + 76);
       requestAnimationFrame(frame);
       return;
     }
@@ -522,10 +631,14 @@
     if (!alive) {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#000';
+      ctx.fillRect(viewWidth / 2 - 190, viewHeight / 2 - 130, 380, 260);
+      ctx.fillStyle = '#fff';
       ctx.font = '24px monospace';
-      ctx.fillText(formatTime(elapsed), viewWidth / 2, viewHeight / 2 + 70);
+      ctx.fillText(formatTime(elapsed), viewWidth / 2, viewHeight / 2 - 96);
+      drawRanking(viewHeight / 2 - 48);
       ctx.font = '16px monospace';
-      ctx.fillText('Enter para reiniciar', viewWidth / 2, viewHeight / 2 + 108);
+      ctx.fillText('Enter para reiniciar', viewWidth / 2, viewHeight / 2 + 92);
     }
     requestAnimationFrame(frame);
   }
