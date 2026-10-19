@@ -1,0 +1,207 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mis notas</title><link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cpath%20fill%3D%22%23f5d77b%22%20d%3D%22M9%205h46v39L39%2059H9z%22%2F%3E%3Cpath%20fill%3D%22%23d9aa4c%22%20d%3D%22M39%2044h16L39%2059z%22%2F%3E%3Cpath%20stroke%3D%22%239b7834%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20d%3D%22M18%2019h28M18%2029h28M18%2039h15%22%2F%3E%3C%2Fsvg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"><style>
+:root{font-family:"Roboto Mono",monospace;color:#242424;background:#f8f9fa}*{box-sizing:border-box}body{margin:0}.tools{position:fixed;top:16px;left:16px;z-index:100}.tools button{border:0;background:#fff;border-radius:10px;padding:11px 14px;font:700 14px "Roboto Mono",monospace;cursor:pointer}.board{position:relative;min-width:100%;min-height:100vh}.note{position:absolute;width:250px;height:auto;min-height:200px;padding:16px 14px 10px;border:0;border-radius:0;background-color:var(--note-color,#f5f1e9);box-shadow:none;touch-action:auto;user-select:auto}.note.dragging{cursor:grabbing;user-select:none;touch-action:none;opacity:.94}.note-title{outline:0;white-space:pre-wrap;overflow-wrap:anywhere;cursor:text}.note-title{font-weight:600;font-size:16px;min-height:21px;margin:0 0 10px}.note-body{font-size:14px;line-height:1.35;min-height:92px;height:auto;overflow:visible;margin:0 0 8px;display:flex;flex-direction:column;gap:4px}.task{display:flex;align-items:flex-start;gap:7px;min-height:24px;padding:3px 0;border-radius:5px}.task-text{font:inherit;line-height:20px;background:transparent;border:0;outline:0;resize:none;flex:1;min-width:0;min-height:20px;padding:0;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere}.task-delete{border:0;background:transparent;cursor:pointer;opacity:0;flex:0 0 auto;padding:0 3px;font-size:17px;line-height:19px;color:#555}.task:hover .task-delete,.task:focus-within .task-delete{opacity:1}.note-title:empty:before{content:attr(data-placeholder);color:#999;pointer-events:none}@media(max-width:650px){.task-delete{opacity:1}}.note-actions{display:flex;align-items:center;gap:6px;justify-content:flex-end;opacity:0;transition:opacity .12s}.note:hover .note-actions,.note:focus-within .note-actions{opacity:1}.note-actions button{border:0;background:transparent;border-radius:6px;cursor:pointer;padding:5px;font-size:16px}.note-actions button:hover{background:#0001}.swatches{display:none;gap:4px;flex-wrap:wrap;max-width:170px}.swatches.open{display:flex}.swatches button{width:18px;height:18px;border:0;border-radius:50%;padding:0}.empty{position:absolute;top:45%;width:100%;text-align:center;color:#888;pointer-events:none}@media(max-width:650px){.note-actions{opacity:1}}
+
+.sync-status{position:fixed;right:16px;top:16px;z-index:101;background:#fff;padding:9px 10px;font:12px "Roboto Mono",monospace}@media(max-width:650px){.sync-status{top:auto;bottom:8px;right:8px;font-size:10px}}
+</style></head><body><div class="tools"><button id="create">＋ Nueva nota</button></div><span class="sync-status" id="account" role="status" aria-live="polite">Cargando notas…</span><main class="board" id="board"><div id="content"></div></main>
+<script>
+window.notesStorageKey='mazo-notas-publicas-v1';
+(()=>{'use strict';const KEY=()=>window.notesStorageKey||'mazo-notas-v2-sin-cuenta',colors=['#f5f1e9','#e3c896','#fff3bd','#fbd5d5','#d9f1dc','#d6e8ff','#eadcff','#ffe4cb','#d8f3f1'];const $=id=>document.getElementById(id);const GRID_X=270,GRID_Y=220,BASE_X=20,BASE_Y=80;const snapX=x=>BASE_X+Math.max(0,Math.round((x-BASE_X)/GRID_X))*GRID_X,snapY=y=>BASE_Y+Math.max(0,Math.round((y-BASE_Y)/GRID_Y))*GRID_Y;let notes=[],maxZ=1,pending=null,drag=null,suppressClick=false,saveTimer=null,cloudWriteTimer=null,queuedRemote=null;
+
+notes.forEach((n,i)=>{if(!Number.isFinite(n.x))n.x=24+(i%4)*272;if(!Number.isFinite(n.y))n.y=100+Math.floor(i/4)*235;if(!Number.isFinite(n.z))n.z=i+1;n.x=snapX(n.x);n.y=snapY(n.y);maxZ=Math.max(maxZ,n.z)});
+function occupied(x,y,except){return notes.some(n=>n.id!==except&&n.x===x&&n.y===y)}
+function freeSlot(x,y,except){x=snapX(x);y=snapY(y);if(!occupied(x,y,except))return {x,y};for(let radius=1;radius<1000;radius++){for(let dy=0;dy<=radius;dy++){for(let dx=0;dx<=radius;dx++){if(Math.max(dx,dy)!==radius)continue;for(const [cx,cy] of [[x+dx*GRID_X,y+dy*GRID_Y],[x-dx*GRID_X,y+dy*GRID_Y],[x+dx*GRID_X,y-dy*GRID_Y],[x-dx*GRID_X,y-dy*GRID_Y]]){if(cx>=BASE_X&&cy>=BASE_Y&&!occupied(cx,cy,except))return {x:cx,y:cy}}}}}return {x,y}}
+// Recolocar notas antiguas que compartieran una misma casilla.
+const placed=new Set();notes.forEach(n=>{let x=n.x,y=n.y;while(placed.has(`${x},${y}`)){x+=GRID_X}n.x=x;n.y=y;placed.add(`${x},${y}`)});
+function persist(){
+ try{localStorage.setItem(KEY(),JSON.stringify(notes))}catch(e){}
+ window.queueCloudSave?.();
+}
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(persist,180)}
+function get(id){return notes.find(n=>n.id===id)}
+const GAP=20;
+function columnOf(n){return Math.max(0,Math.round((n.x-BASE_X)/GRID_X))}
+function orderColumns(){
+ const cols=new Map();
+ for(const n of notes){const col=columnOf(n);if(!cols.has(col))cols.set(col,[]);cols.get(col).push(n)}
+ for(const [col,items] of cols){items.sort((a,b)=>a.y-b.y||a.z-b.z);items.forEach((n,i)=>{n.x=BASE_X+col*GRID_X;n.y=BASE_Y+i*GRID_Y})}
+ return cols;
+}
+function resizeBoard(){
+ const moving=drag?get(drag.id):null;const pos=moving?{x:moving.x,y:moving.y}:null;
+ const cols=orderColumns();if(moving&&pos){moving.x=pos.x;moving.y=pos.y;}let w=innerWidth,h=innerHeight;
+ for(const [col,items] of cols){let top=BASE_Y;
+  for(const n of items){const el=document.querySelector(`.note[data-id="${CSS.escape(n.id)}"]`);if(!el)continue;
+   if(!el.classList.contains('dragging')){el.style.left=n.x+'px';el.style.top=top+'px';}
+   const height=Math.max(200,el.offsetHeight);
+   if(!el.classList.contains('dragging'))top+=height+GAP;
+   w=Math.max(w,el.offsetLeft+el.offsetWidth+GAP);h=Math.max(h,el.offsetTop+el.offsetHeight+GAP);
+  }
+ }
+ $('board').style.width=w+'px';$('board').style.height=h+'px';
+}
+function insertionRow(col,y,exclude){
+ const others=notes.filter(n=>n.id!==exclude&&columnOf(n)===col).sort((a,b)=>a.y-b.y);
+ let top=BASE_Y;
+ for(let i=0;i<others.length;i++){
+  const el=document.querySelector(`.note[data-id="${CSS.escape(others[i].id)}"]`);
+  const height=el?Math.max(200,el.offsetHeight):200;
+  if(y<top+height/2)return i;
+  top+=height+GAP;
+ }
+ return others.length;
+}
+function makeNote(n){const el=document.createElement('article');el.className='note';el.dataset.id=n.id;el.style.cssText=`left:${n.x}px;top:${n.y}px;z-index:${n.z};--note-color:${colors.includes(n.color)?n.color:'#f5f1e9'}`;
+const title=document.createElement('div');title.className='note-title';title.contentEditable='true';title.dataset.placeholder='Título';title.setAttribute('role','textbox');title.setAttribute('aria-label','Título');title.textContent=n.title||'';
+const body=document.createElement('div');body.className='note-body';body.setAttribute('aria-label','Tareas');
+if(!Array.isArray(n.tasks))n.tasks=(n.body||'').split(/\r?\n/).filter(t=>t.trim().length).map(t=>({id:globalThis.crypto?.randomUUID?.()||String(Math.random()),text:t}));if(!n.tasks.length)n.tasks=[{id:globalThis.crypto?.randomUUID?.()||String(Math.random()),text:''}];
+function syncTasks(){n.body=n.tasks.map(t=>t.text).join('\n');scheduleSave();resizeBoard()}
+function addTask(text=''){const t={id:globalThis.crypto?.randomUUID?.()||String(Date.now()+Math.random()),text,done:false};n.tasks.push(t);renderTasks();syncTasks();const inp=[...body.querySelectorAll('.task-text')].at(-1);inp?.focus()}
+function renderTasks(){body.replaceChildren();n.tasks.forEach((t,index)=>{
+ const row=document.createElement('div');row.className='task';row.dataset.taskId=t.id;
+ const inp=document.createElement('textarea');inp.className='task-text';inp.rows=1;inp.value=t.text;inp.placeholder='';inp.setAttribute('aria-label','Tarea');
+ function autosize(){inp.style.height='20px';inp.style.height=Math.max(20,inp.scrollHeight)+'px';resizeBoard()}
+ inp.addEventListener('input',()=>{t.text=inp.value.replace(/\n/g,'');syncTasks();autosize()});
+ inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addTask()}else if(e.key==='Backspace'&&!inp.value&&n.tasks.length>1){e.preventDefault();n.tasks.splice(n.tasks.indexOf(t),1);renderTasks();syncTasks();const prev=body.querySelectorAll('.task-text')[Math.max(0,index-1)];prev?.focus()}});
+ const delTask=document.createElement('button');delTask.type='button';delTask.className='task-delete';delTask.textContent='×';delTask.title='Eliminar tarea';delTask.onclick=()=>{n.tasks=n.tasks.filter(x=>x.id!==t.id);renderTasks();syncTasks()};
+ row.append(inp,delTask);row.addEventListener('click',e=>{if(e.target===row)inp.focus()});body.append(row);requestAnimationFrame(autosize);
+ });}
+
+renderTasks();
+body.addEventListener('click',e=>{if(e.target!==body)return;const last=body.querySelector('.task-text:last-of-type')||body.querySelector('.task:last-child .task-text');if(last&&!last.value.trim())last.focus();else addTask()});
+const actions=document.createElement('div');actions.className='note-actions';const swatches=document.createElement('div');swatches.className='swatches';colors.forEach(c=>{const b=document.createElement('button');b.type='button';b.style.background=c;b.title='Cambiar color';b.setAttribute('aria-label','Cambiar color');b.onclick=()=>{n.color=c;el.style.setProperty('--note-color',c);persist()};swatches.append(b)});
+const colorBtn=document.createElement('button');colorBtn.textContent='◉';colorBtn.title='Color';colorBtn.setAttribute('aria-label','Elegir color');colorBtn.onclick=()=>swatches.classList.toggle('open');const del=document.createElement('button');del.textContent='🗑';del.title='Eliminar';del.setAttribute('aria-label','Eliminar nota');del.onclick=()=>{if(confirm('¿Eliminar esta nota?')){notes=notes.filter(x=>x.id!==n.id);el.remove();persist();showEmpty();resizeBoard()}};
+actions.append(swatches,colorBtn,del);el.append(title,body,actions);for(const [field,box] of [['title',title]]){box.addEventListener('input',()=>{n[field]=box.innerText;scheduleSave();resizeBoard()});box.addEventListener('blur',persist)};return el}
+function showEmpty(){document.querySelector('.empty')?.remove();if(!notes.length){const el=document.createElement('div');el.className='empty';el.textContent='Pulsa «＋ Nueva nota» para empezar';$('content').append(el)}}
+function render(){const c=$('content');c.replaceChildren(...notes.map(makeNote));showEmpty();resizeBoard()}
+$('create').onclick=()=>{const counts=new Map();for(const n of notes)counts.set(columnOf(n),(counts.get(columnOf(n))||0)+1);const columns=Math.max(1,Math.floor((innerWidth-BASE_X-GAP)/GRID_X));let col=0;for(let c=1;c<columns;c++)if((counts.get(c)||0)<(counts.get(col)||0))col=c;const n={id:globalThis.crypto?.randomUUID?.()||Date.now()+'-'+Math.random(),title:'',body:'',color:'#f5f1e9',x:BASE_X+col*GRID_X,y:BASE_Y+(counts.get(col)||0)*GRID_Y,z:++maxZ};notes.push(n);const el=makeNote(n);$('content').append(el);showEmpty();resizeBoard();persist();el.querySelector('.note-title').focus()};
+function cancelPending(){pending=null}
+$('content').addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button,.note-body'))return;const el=e.target.closest('.note');if(!el)return;const n=get(el.dataset.id);if(!n)return;pending={id:n.id,el,pid:e.pointerId,startX:e.clientX,startY:e.clientY,x:n.x,y:el.offsetTop};});
+$('content').addEventListener('pointermove',e=>{if(pending&&e.pointerId===pending.pid&&Math.hypot(e.clientX-pending.startX,e.clientY-pending.startY)>3){drag=pending;pending=null;const n=get(drag.id);n.z=++maxZ;drag.el.style.zIndex=n.z;drag.el.classList.add('dragging');drag.el.setPointerCapture(drag.pid);window.getSelection()?.removeAllRanges();document.activeElement?.blur?.()}if(!drag||e.pointerId!==drag.pid)return;const n=get(drag.id);if(!n)return;n.x=Math.max(0,Math.round(drag.x+e.clientX-drag.startX));n.y=Math.max(0,Math.round(drag.y+e.clientY-drag.startY));drag.el.style.left=n.x+'px';drag.el.style.top=n.y+'px';resizeBoard();e.preventDefault()});
+function finish(e){if(pending&&e.pointerId===pending.pid)cancelPending();if(!drag||e.pointerId!==drag.pid)return;const n=get(drag.id);if(n){const col=Math.max(0,Math.round((n.x-BASE_X)/GRID_X));const row=insertionRow(col,n.y,n.id);const others=notes.filter(item=>item.id!==n.id&&columnOf(item)===col).sort((a,b)=>a.y-b.y);others.forEach((item,i)=>item.y=BASE_Y+(i>=row?i+1:i)*GRID_Y);n.x=BASE_X+col*GRID_X;n.y=BASE_Y+row*GRID_Y;}drag.el.classList.remove('dragging');if(drag.el.hasPointerCapture(e.pointerId))drag.el.releasePointerCapture(e.pointerId);drag=null;resizeBoard();suppressClick=true;setTimeout(()=>suppressClick=false,0);persist()}
+$('content').addEventListener('pointerup',finish);$('content').addEventListener('pointercancel',finish);$('content').addEventListener('click',e=>{if(suppressClick){e.preventDefault();e.stopPropagation()}},true);window.addEventListener('resize',resizeBoard);render();
+ window.getCurrentNotes=()=>notes;
+ window.replaceNotes=arr=>{notes=JSON.parse(JSON.stringify(arr));maxZ=Math.max(1,...notes.map(n=>n.z||1));render();try{localStorage.setItem(KEY(),JSON.stringify(notes))}catch(e){}};
+ window.saveNotesToCloud=()=>persist();
+ window.addEventListener('pagehide',()=>{try{localStorage.setItem(KEY(),JSON.stringify(notes))}catch(e){}});
+})();
+
+
+// Public shared board. No Google session or account is required.
+const API='https://krgqalymfdyffylczwfx.supabase.co/rest/v1/rpc/';
+const PUBLIC_KEY='sb_publishable_gOMmTT95St3iF5BSGdKijg_cZ4S9wcT';
+const CACHE='mazo-notas-publicas-sync-v1';
+const status=document.getElementById('account');
+let base=[],pending=null,busy=false,ready=false,timer;
+const copy=x=>JSON.parse(JSON.stringify(x));
+function stable(x){
+ if(Array.isArray(x))return '['+x.map(stable).join(',')+']';
+ if(x&&typeof x==='object')return '{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+stable(x[k])).join(',')+'}';
+ return JSON.stringify(x);
+}
+const same=(a,b)=>stable(a)===stable(b);
+const current=()=>copy(window.getCurrentNotes());
+const uid=()=>crypto.randomUUID();
+function diff(before,after){
+ const a=new Map(before.map(n=>[n.id,n])),b=new Map(after.map(n=>[n.id,n])),ops=[];
+ for(const id of new Set([...a.keys(),...b.keys()])){
+  const old=a.get(id),next=b.get(id);
+  if(same(old,next))continue;
+  if(!next){ops.push({id,kind:'delete'});continue}
+  if(!old){ops.push({id,kind:'create',note:copy(next)});continue}
+  const changes={};
+  for(const key of Object.keys(next))if(key!=='id'&&!same(old[key],next[key]))changes[key]=copy(next[key]);
+  if(Object.keys(changes).length)ops.push({id,kind:'patch',changes});
+ }
+ return ops;
+}
+function apply(state,ops){
+ const map=new Map(state.map(n=>[n.id,copy(n)]));
+ for(const op of ops){
+  if(op.kind==='delete')map.delete(op.id);
+  else if(op.kind==='create')map.set(op.id,copy(op.note));
+  else if(op.kind==='patch'&&map.has(op.id))map.set(op.id,{...map.get(op.id),...copy(op.changes)});
+ }
+ return [...map.values()];
+}
+function validNotes(arr){
+ if(!Array.isArray(arr)||arr.length>5000)throw Error('El archivo no contiene una lista de notas válida');
+ const ids=new Set();
+ return arr.map((n,i)=>{
+  if(!n||typeof n.id!=='string'||n.id.length>200||ids.has(n.id))throw Error('El archivo contiene notas inválidas o IDs repetidos');
+  ids.add(n.id);
+  if(n.tasks!==undefined&&(!Array.isArray(n.tasks)||n.tasks.some(t=>!t||typeof t.id!=='string'||typeof t.text!=='string')))throw Error('Tareas inválidas');
+  return {id:n.id,title:String(n.title||''),body:String(n.body||''),color:String(n.color||'#f5f1e9'),
+   x:Number.isFinite(n.x)?n.x:20,y:Number.isFinite(n.y)?n.y:80+i*220,z:Number.isFinite(n.z)?n.z:i+1,
+   ...(n.tasks?{tasks:copy(n.tasks)}:{})};
+ });
+}
+function applyUI(notes){
+ const active=document.activeElement, noteId=active?.closest('.note')?.dataset.id,
+ taskId=active?.closest('.task')?.dataset.taskId, title=active?.matches('.note-title'),
+ start=active?.selectionStart,end=active?.selectionEnd,sel=window.getSelection(),offset=title?sel?.focusOffset:null;
+ window.replaceNotes(notes);
+ if(noteId){
+  const note=document.querySelector('.note[data-id="'+CSS.escape(noteId)+'"]');
+  const el=title?note?.querySelector('.note-title'):note?.querySelector('.task[data-task-id="'+CSS.escape(taskId||'')+'"] .task-text');
+  el?.focus();if(el&&start!=null)el.setSelectionRange(start,end);
+  if(title&&el?.firstChild&&offset!=null){const range=document.createRange();range.setStart(el.firstChild,Math.min(offset,el.firstChild.textContent.length));range.collapse(true);sel.removeAllRanges();sel.addRange(range)}
+ }
+}
+
+function showStatus(text){status.textContent=text}
+function cache(){
+ try{localStorage.setItem(CACHE,JSON.stringify({base,notes:current(),pending}))}
+ catch(e){showStatus('No se puede guardar la copia local')}
+}
+async function request(method,body={}){
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
+ try{
+  const r=await fetch(API+method,{method:'POST',headers:{apikey:PUBLIC_KEY,'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});
+  if(!r.ok){const e=Error('Error de sincronización');e.setup=r.status===404;throw e}
+  return await r.json();
+ }finally{clearTimeout(timeout)}
+}
+function changed(){return !same(base,current())}
+window.queueCloudSave=()=>{
+ cache();showStatus('Cambios pendientes…');clearTimeout(timer);timer=setTimeout(sync,650);
+};
+async function sync(){
+ if(busy||document.querySelector('.dragging'))return;
+ busy=true;
+ try{
+  // Retry exactly the same mutation after an interrupted upload.
+  if(!pending&&changed())pending={id:uid(),sent:current(),ops:diff(base,current())};
+  cache();
+  if(pending){
+   showStatus('Guardando…');
+   const result=validNotes(await request('mazo_notes_apply',{mutation_id:pending.id,operations:pending.ops}));
+   const later=diff(pending.sent,current());
+   base=copy(result);pending=null;
+   const merged=apply(result,later);
+   if(!same(current(),merged))applyUI(merged);
+   ready=true;cache();
+  }else{
+   const result=validNotes(await request('mazo_notes_read'));
+   // Preserve edits made while the request was in flight.
+   if(document.querySelector('.dragging'))return;
+   const edits=diff(base,current());
+   const merged=apply(result,edits);
+   base=copy(result);
+   if(!same(current(),merged))applyUI(merged);
+   ready=true;cache();
+  }
+  showStatus(changed()?'Cambios pendientes…':'Guardado · sincronización automática');
+ }catch(e){showStatus(e.setup?'Falta configurar el guardado en Supabase':'Sin conexión · cambios guardados en este navegador')}
+ finally{busy=false;clearTimeout(timer);timer=setTimeout(sync,changed()||pending?2000:5000)}
+}
+try{
+ const saved=JSON.parse(localStorage.getItem(CACHE)||'null');
+ if(saved){base=validNotes(saved.base);pending=saved.pending||null;window.replaceNotes(validNotes(saved.notes))}
+}catch(e){showStatus('No se pudo recuperar la copia local')}
+window.addEventListener('online',sync);
+window.addEventListener('focus',sync);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync();else{cache();sync()}});
+window.addEventListener('pagehide',cache);
+sync();
+</script></body></html>
